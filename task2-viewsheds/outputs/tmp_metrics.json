@@ -1,0 +1,56 @@
+{
+  "train": {
+    "accuracy": 0.7297045454545454,
+    "precision": 0.32549492308006617,
+    "recall": 0.8567433856743386,
+    "f1": 0.47175873147476416,
+    "iou": 0.30869388308693885,
+    "tp": 15932.0,
+    "tn": 80389.0,
+    "fp": 33015.0,
+    "fn": 2664.0
+  },
+  "validation": {
+    "accuracy": 0.7525417574437182,
+    "precision": 0.30553191489361703,
+    "recall": 0.7948339483394834,
+    "f1": 0.4413934426229509,
+    "iou": 0.283197475677097,
+    "tp": 1077.0,
+    "tn": 7213.0,
+    "fp": 2448.0,
+    "fn": 278.0
+  },
+  "validation_best_threshold": 0.7,
+  "validation_best_threshold_metrics": {
+    "accuracy": 0.8725490196078431,
+    "precision": 0.485697606538237,
+    "recall": 0.6140221402214022,
+    "f1": 0.5423728813559321,
+    "iou": 0.37209302325581395,
+    "tp": 832.0,
+    "tn": 8780.0,
+    "fp": 881.0,
+    "fn": 523.0
+  },
+  "train_at_best_threshold": {
+    "accuracy": 0.8504924242424242,
+    "precision": 0.47722819784877446,
+    "recall": 0.641804689180469,
+    "f1": 0.5474142873523679,
+    "iou": 0.37685506788759077,
+    "tp": 11935.0,
+    "tn": 100330.0,
+    "fp": 13074.0,
+    "fn": 6661.0
+  },
+  "train_observers": 60,
+  "validation_observers": 3,
+  "train_samples": 132000,
+  "validation_samples": 11016,
+  "scene_mode": "fused",
+  "observer_height": 1.6,
+  "target_height": 0.0,
+  "max_distance": null,
+  "seed": 7
+}

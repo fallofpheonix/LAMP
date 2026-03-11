@@ -1,0 +1,55 @@
+{
+  "dem": {
+    "crs": "EPSG:32636",
+    "shape": [
+      54,
+      68
+    ],
+    "resolution": [
+      1.5,
+      1.5
+    ],
+    "bounds": [
+      254172.75,
+      2820956.25,
+      254274.75,
+      2821037.25
+    ]
+  },
+  "sar": {
+    "crs": "EPSG:32636",
+    "shape": [
+      58,
+      70
+    ],
+    "resolution": [
+      1.5,
+      1.5
+    ],
+    "bounds": [
+      254170.16,
+      2820954.72,
+      254275.16,
+      2821041.72
+    ]
+  },
+  "alignment": {
+    "target_grid": {
+      "crs": "EPSG:32636",
+      "shape": [
+        54,
+        68
+      ],
+      "resolution": [
+        1.5,
+        1.5
+      ]
+    },
+    "crs_equal_before_reproject": true,
+    "resolution_equal_before_reproject": true
+  },
+  "path_prior": {
+    "mode": "learned",
+    "source_raster": "outputs_smoke/path_prior_prob.tif"
+  }
+}

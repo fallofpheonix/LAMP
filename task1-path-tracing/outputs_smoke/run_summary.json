@@ -1,0 +1,24 @@
+{
+  "terminals": 3,
+  "candidate_pairs": 3,
+  "processed_pairs": 3,
+  "successful_pairs": 3,
+  "path_features": 12,
+  "centerline_features": 64,
+  "lost_centerline_features": 29,
+  "lost_path_polygons": 14,
+  "samples_per_pair": 64,
+  "top_k_paths": 4,
+  "skeletonize_backend": "skimage",
+  "selected_weights": {
+    "slope": 0.550000011920929,
+    "roughness": 0.30000001192092896,
+    "surface": 0.10000000149011612,
+    "path_prior": 0.05000000074505806
+  },
+  "topk_recall": 0.559748427672956,
+  "iou": 0.2908496732026144,
+  "precision": 0.3771186440677966,
+  "f1": 0.4506329113924051,
+  "calibration_candidates": 9
+}

@@ -1,0 +1,7 @@
+label_mode: 3d
+synthetic_observers: 60
+samples_per_observer: 2200
+epochs: 350
+learning_rate: 0.04
+seed: 7
+threshold_mode: validation_best

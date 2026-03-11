@@ -1,0 +1,9 @@
+scene_mode: fused
+observer_height_m: 1.6
+target_height_m: 0.0
+max_distance_m: null
+z_res_m: 0.5
+openings_path: data/openings.geojson
+volume_observer_id: 1
+volume_azimuth_steps: 360
+volume_elevation_steps: 91
