@@ -114,17 +114,19 @@ def sample_probabilistic_paths(
                 density[r, c] += 1.0
     else:
         # Multi-process path: split samples across workers.
-        batch_size = max(1, samples // n_workers)
+        # Clamp the number of workers so we never schedule more workers than samples.
+        effective_workers = min(n_workers, samples)
+
+        # Distribute samples across workers so that the total equals `samples` exactly.
+        q, r = divmod(samples, effective_workers)
         batches: list[tuple[int, int]] = []
-        remaining = samples
-        for i in range(n_workers):
-            n = batch_size if i < n_workers - 1 else remaining
+        for i in range(effective_workers):
+            n = q + (1 if i < r else 0)
             if n > 0:
                 batches.append((n, seed + i * 100_000))
-            remaining -= n
 
         successful = 0
-        with ProcessPoolExecutor(max_workers=n_workers) as executor:
+        with ProcessPoolExecutor(max_workers=effective_workers) as executor:
             futures = [
                 executor.submit(
                     _worker_sample_batch,
