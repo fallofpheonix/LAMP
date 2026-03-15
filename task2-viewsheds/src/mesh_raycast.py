@@ -90,9 +90,10 @@ def moller_trumbore(
     Returns
     -------
     (hit, t)
-        *hit* is ``True`` when the ray intersects the front face of *tri* at
-        parametric distance ``t > 0``.  *t* is ``float('inf')`` when there is
-        no intersection.
+        *hit* is ``True`` when the ray intersects *tri* at parametric
+        distance ``t > 0`` (either face, depending on ray direction and
+        triangle winding).  *t* is ``float('inf')`` when there is no
+        intersection.
     """
     edge1 = tri.v1 - tri.v0
     edge2 = tri.v2 - tri.v0
