@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
-from typing import Sequence
 
 import numpy as np
 
