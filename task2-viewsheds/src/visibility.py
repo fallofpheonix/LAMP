@@ -9,14 +9,34 @@ import numpy as np
 from .raycast import compute_viewshed
 
 
+# Module-level shared surface for worker processes.
+_GLOBAL_SURFACE: np.ndarray | None = None
+
+
+def _init_worker(surface: np.ndarray) -> None:
+    """Initializer for worker processes to set the shared surface.
+
+    This is called once per worker process by ``ProcessPoolExecutor``.
+    """
+    global _GLOBAL_SURFACE
+    _GLOBAL_SURFACE = surface
+
+
 def _compute_one_observer(
-    args: Tuple[np.ndarray, Optional[float], dict, float, float, float, Optional[float]]
+    args: Tuple[Optional[float], dict, float, float, float, Optional[float]]
 ) -> Tuple[dict, dict, np.ndarray]:
     """Worker helper: compute viewshed for a single observer.
 
     Packaged as a tuple so it can be submitted to ``ProcessPoolExecutor``.
+    The large ``surface`` array is provided via the module-level
+    ``_GLOBAL_SURFACE`` to avoid re-serialising it for every task.
     """
-    surface, nodata, obs, observer_height, target_height, pixel_size_m, max_distance_m = args
+    global _GLOBAL_SURFACE
+    if _GLOBAL_SURFACE is None:
+        raise RuntimeError("Shared surface has not been initialised in worker.")
+
+    surface = _GLOBAL_SURFACE
+    nodata, obs, observer_height, target_height, pixel_size_m, max_distance_m = args
     arr, stats = compute_viewshed(
         surface=surface,
         nodata=nodata,
@@ -77,16 +97,27 @@ def compute_multi_observer_visibility(
     if n_workers is None:
         n_workers = min(os.cpu_count() or 1, 4) if len(observers_rc) >= 2 else 1
 
+    # Prepare lightweight task arguments; the large ``surface`` array is
+    # provided to workers via the module-level ``_GLOBAL_SURFACE``.
     task_args = [
-        (surface, nodata, obs, observer_height, target_height, pixel_size_m, max_distance_m)
+        (nodata, obs, observer_height, target_height, pixel_size_m, max_distance_m)
         for obs in observers_rc
     ]
+
+    # Ensure the shared surface is available in the main process as well,
+    # so that the same helper can be used in the single-worker path.
+    global _GLOBAL_SURFACE
+    _GLOBAL_SURFACE = surface
 
     if n_workers <= 1:
         results = [_compute_one_observer(a) for a in task_args]
     else:
         results = [None] * len(task_args)  # type: ignore[list-item]
-        with ProcessPoolExecutor(max_workers=n_workers) as executor:
+        with ProcessPoolExecutor(
+            max_workers=n_workers,
+            initializer=_init_worker,
+            initargs=(surface,),
+        ) as executor:
             future_to_idx = {
                 executor.submit(_compute_one_observer, a): i
                 for i, a in enumerate(task_args)
