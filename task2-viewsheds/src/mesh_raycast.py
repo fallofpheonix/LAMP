@@ -7,7 +7,7 @@ is available.  Falls back gracefully to voxel methods when not used.
 Classes
 -------
 Triangle
-    Stores the three vertices of a triangle and its pre-computed normal.
+    Stores the three vertices of a triangle and provides AABB/centroid helpers.
 BVHNode
     Bounding-volume-hierarchy node wrapping a list of triangles.
 MeshScene
