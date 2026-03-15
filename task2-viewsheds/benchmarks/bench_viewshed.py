@@ -4,7 +4,7 @@ Benchmark: viewshed LOS computation runtime vs raster size.
 
 Usage
 -----
-    PYTHONPATH=src python benchmarks/bench_viewshed.py
+    python benchmarks/bench_viewshed.py
 
 Measures wall-clock time for increasing surface sizes (single observer,
 no multi-process) and prints a summary table.
