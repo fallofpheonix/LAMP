@@ -203,12 +203,40 @@ def _ray_aabb_intersect(
     bbox_max: np.ndarray,
     t_max: float,
 ) -> bool:
-    """Slab test for ray–AABB intersection."""
-    t1 = (bbox_min - ray_origin) * inv_dir
-    t2 = (bbox_max - ray_origin) * inv_dir
+    """Slab test for ray–AABB intersection.
 
-    tmin = float(np.max(np.minimum(t1, t2)))
-    tmax_box = float(np.min(np.maximum(t1, t2)))
+    This implementation is robust to zero ray-direction components
+    (corresponding to infinite values in ``inv_dir``): for axes where the
+    ray is effectively parallel, the ray intersects the box only if the
+    origin lies within the box slab on that axis, and such axes do not
+    constrain the global ``t`` interval.
+    """
+    tmin = -np.inf
+    tmax_box = np.inf
+
+    for i in range(3):
+        inv_d = inv_dir[i]
+        o = ray_origin[i]
+        bmin = bbox_min[i]
+        bmax = bbox_max[i]
+
+        if not np.isfinite(inv_d):
+            # Ray is parallel to this axis. It can only intersect the box if
+            # the origin lies within the slab [bmin, bmax] along this axis.
+            if o < bmin or o > bmax:
+                return False
+            axis_tmin = -np.inf
+            axis_tmax = np.inf
+        else:
+            t1 = (bmin - o) * inv_d
+            t2 = (bmax - o) * inv_d
+            axis_tmin = t1 if t1 < t2 else t2
+            axis_tmax = t2 if t2 > t1 else t1
+
+        if axis_tmin > tmin:
+            tmin = axis_tmin
+        if axis_tmax < tmax_box:
+            tmax_box = axis_tmax
 
     return tmax_box >= max(tmin, 0.0) and tmin < t_max
 
