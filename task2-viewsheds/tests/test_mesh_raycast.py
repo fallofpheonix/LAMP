@@ -201,4 +201,4 @@ class TestDemToMesh:
         for t in tris:
             for v in (t.v0, t.v1, t.v2):
                 z_vals.add(round(float(v[2]), 6))
-        assert 10.0 in z_vals or 0.0 in z_vals
+        assert 10.0 in z_vals and 0.0 in z_vals

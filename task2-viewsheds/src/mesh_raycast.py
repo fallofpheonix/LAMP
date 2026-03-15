@@ -231,8 +231,10 @@ def _traverse_bvh(
                 return True
         return False
 
-    return _traverse_bvh(node.left, ray_origin, ray_dir, inv_dir, t_max) or \
-           _traverse_bvh(node.right, ray_origin, ray_dir, inv_dir, t_max)
+    return (
+        _traverse_bvh(node.left, ray_origin, ray_dir, inv_dir, t_max)
+        or _traverse_bvh(node.right, ray_origin, ray_dir, inv_dir, t_max)
+    )
 
 
 # ---------------------------------------------------------------------------

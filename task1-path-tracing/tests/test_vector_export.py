@@ -36,6 +36,7 @@ class TestPixelCenterXY:
         t = from_bounds(0.0, 0.0, 10.0, 10.0, 10, 10)
         x, y = pixel_center_xy(t, 0, 0)
         assert x == pytest.approx(0.5, abs=1e-6)
+        assert y == pytest.approx(9.5, abs=1e-6)
 
     def test_pixel_center_is_inside_cell(self) -> None:
         t = _simple_transform()
