@@ -1,4 +1,19 @@
 .DS_Store
 .venv/
+.python_env/
 __pycache__/
 *.pyc
+outputs/
+outputs_production/
+task1-path-tracing/outputs_final_audit/
+task1-path-tracing/outputs_production/
+Task_1/  # Usually large datasets should be ignored, but I'll leave them if the user didn't specify.
+path_prior_prob.tif
+*.gpkg
+*.dbf
+*.shp
+*.shx
+*.prj
+*.cpg
+# (Actually, the user might want the shapefiles if they were part of the audit results, 
+# but usually, generated outputs are ignored.)

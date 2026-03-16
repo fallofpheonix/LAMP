@@ -1,0 +1,9 @@
+services:
+  lamp-pipeline:
+    build: .
+    volumes:
+      - ./outputs:/app/outputs
+      - ./config:/app/config
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: ["--mode", "full"]

@@ -311,24 +311,41 @@ def mesh_is_visible(
     scene: MeshScene,
     start_xyz: tuple[float, float, float],
     end_xyz: tuple[float, float, float],
-) -> bool:
-    """Test LOS from *start_xyz* to *end_xyz* against the mesh BVH.
+    aperture_m: float = 0.0,
+    n_samples: int = 1,
+) -> float:
+    """Test LOS with optional aperture sampling.
 
-    Returns ``True`` when the segment is unoccluded (no triangle hit between
-    the two endpoints).
+    Returns the visibility fraction [0, 1] based on *n_samples* rays
+    jittered within *aperture_m* radius around the observer.
     """
-    o = np.asarray(start_xyz, dtype=np.float64)
-    d = np.asarray(end_xyz, dtype=np.float64) - o
-    length = float(np.linalg.norm(d))
-    if length < 1e-9:
-        return True
+    o_base = np.asarray(start_xyz, dtype=np.float64)
+    target = np.asarray(end_xyz, dtype=np.float64)
+    
+    visibility_sum = 0.0
+    
+    for i in range(n_samples):
+        if i == 0 or aperture_m <= 0:
+            o = o_base
+        else:
+            # Simple disk sampling in horizontal plane for aperture
+            angle = np.random.uniform(0, 2 * np.pi)
+            dist = np.random.uniform(0, aperture_m)
+            o = o_base + np.array([dist * np.cos(angle), dist * np.sin(angle), 0.0])
+            
+        d = target - o
+        length = float(np.linalg.norm(d))
+        if length < 1e-9:
+            visibility_sum += 1.0
+            continue
 
-    # Use IEEE-safe division: zero direction components yield ±inf,
-    # which is handled correctly by the slab AABB test.
-    with np.errstate(divide="ignore", invalid="ignore"):
-        inv_dir = 1.0 / d
-
-    return not _traverse_bvh(scene.bvh_root, o, d, inv_dir, t_max=1.0)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            inv_dir = 1.0 / d
+            
+        if not _traverse_bvh(scene.bvh_root, o, d, inv_dir, t_max=1.0):
+            visibility_sum += 1.0
+            
+    return visibility_sum / n_samples
 
 
 # ---------------------------------------------------------------------------

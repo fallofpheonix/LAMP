@@ -1,0 +1,21 @@
+{
+  "dem_path": "Task_1/DEM_Subset-Original.tif",
+  "sar_path": "Task_1/SAR-MS.tif",
+  "marks_path": "Task_1/Marks_Brief1.shp",
+  "buildings_path": "Task_1/BuildingFootprints.shp",
+  "known_paths_path": "known_path_fragments.shp",
+  "path_prior_raster": "path_prior_prob.tif",
+  "path_prior_mode": "learned",
+  "out_dir": "outputs_production",
+  "samples_per_pair": 128,
+  "max_pairs": 0,
+  "top_k_paths": 12,
+  "noise_temperature": 0.08,
+  "cost_w_slope": 0.55,
+  "cost_w_roughness": 0.30,
+  "cost_w_surface": 0.10,
+  "cost_w_path_prior": 0.05,
+  "calibrate_weights": true,
+  "calibration_samples": 64,
+  "rng_seed": 11
+}
