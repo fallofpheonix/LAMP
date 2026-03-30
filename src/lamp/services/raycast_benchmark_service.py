@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import time
-from pathlib import Path
 
 from lamp.core.exceptions import DependencyUnavailableError
 from lamp.core.models import BenchmarkResult
@@ -9,17 +8,12 @@ from lamp.core.models import BenchmarkResult
 
 def run_raycast_benchmark(samples: int = 100) -> BenchmarkResult:
     try:
-        import sys
-
         import numpy as np
 
-        root = Path(__file__).resolve().parents[1]
-        sys.path.insert(0, str(root / "shared_utils/src"))
-        sys.path.insert(0, str(root / "task2-viewsheds"))
-        from src.mesh_raycast import build_mesh_scene, dem_to_mesh, mesh_is_visible
-        from src.raycast import compute_viewshed
+        from lamp.tasks.viewsheds.mesh_raycast import build_mesh_scene, dem_to_mesh, mesh_is_visible
+        from lamp.tasks.viewsheds.raycast import compute_viewshed
     except Exception as exc:
-        raise DependencyUnavailableError("task2-viewsheds raycast modules unavailable") from exc
+        raise DependencyUnavailableError("viewshed raycast modules unavailable") from exc
 
     dem = np.random.uniform(0, 100, (100, 100)).astype(np.float32)
     geotransform = (0, 1, 0, 0, 0, -1)

@@ -16,7 +16,9 @@ This repository follows a professional, modular "big project" structure:
   - `shared/`: Common geospatial and terrain utilities.
   - `utils/`: Filesystem and I/O helpers.
 - `scripts/`: Unified command-line entry points.
-- `data/`: (Consolidation in progress) Centralized dataset storage.
+- `data/`: Centralized runtime dataset storage.
+  - `task1/`: Path-tracing inputs and labels.
+  - `task2/`: Viewshed inputs.
 - `outputs/`: Task-specific result folders.
 - `tests/`: Consolidated test suite.
 
@@ -39,11 +41,10 @@ lamp ml-diagnostics
 
 ### Task 1: Path Tracing
 ```bash
-python scripts/run_path_tracing.py --dem data/dem.tif --sar data/sar.tif ...
+python scripts/run_path_tracing.py --dem data/task1/DEM_Subset-Original.tif --sar data/task1/SAR-MS.tif
 ```
 
 ### Task 2: Viewsheds
 ```bash
-python scripts/run_viewsheds.py --data-dir data/task2 --output-dir outputs/task2
+python scripts/run_viewsheds.py --data-dir data/task2 --output-dir outputs
 ```
-

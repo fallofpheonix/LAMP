@@ -6,8 +6,9 @@ import os
 import sys
 from pathlib import Path
 
-repo_root = Path(__file__).resolve().parents[1]
-# # sys.path.insert(0, str(repo_root))
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT / "src") not in sys.path:
+    sys.path.insert(0, str(ROOT / "src"))
 
 import numpy as np
 from osgeo import gdal
@@ -30,14 +31,14 @@ gdal.UseExceptions()
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="3D voxel viewshed + volume pipeline")
-    p.add_argument("--data-dir", default="data")
+    p.add_argument("--data-dir", default=str(ROOT / "data" / "task2"))
     p.add_argument("--output-dir", default="outputs")
     p.add_argument("--scene-mode", default="fused", choices=["provided", "synthetic", "fused"])
     p.add_argument("--observer-height", type=float, default=1.6)
     p.add_argument("--target-height", type=float, default=0.0)
     p.add_argument("--max-distance", type=float, default=None)
     p.add_argument("--z-res", type=float, default=0.5)
-    p.add_argument("--openings-path", default="data/openings.geojson")
+    p.add_argument("--openings-path", default=str(ROOT / "data" / "task2" / "openings.geojson"))
     p.add_argument("--volume-observer-id", type=int, default=1)
     p.add_argument("--volume-azimuth-steps", type=int, default=360)
     p.add_argument("--volume-elevation-steps", type=int, default=91)

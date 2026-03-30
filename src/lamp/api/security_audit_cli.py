@@ -28,3 +28,7 @@ def run(argv: list[str] | None = None) -> int:
     print(report, end="")
     print(f"Security report written to {out_file}")
     return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    return run(argv)

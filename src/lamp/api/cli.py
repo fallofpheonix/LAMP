@@ -9,28 +9,35 @@ from lamp.api.raycast_benchmark_cli import run as run_raycast_benchmark
 from lamp.api.security_audit_cli import run as run_security_audit
 
 
+COMMANDS = {
+    "validate-dataset": run_dataset_validation,
+    "security-audit": run_security_audit,
+    "benchmark-raycast": run_raycast_benchmark,
+    "ml-diagnostics": run_ml_diagnostics,
+}
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="lamp", description="Repository operations CLI")
+    parser.add_argument("command", nargs="?", choices=sorted(COMMANDS))
+    return parser
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="lamp-tools", description="Repository operations CLI")
-    subparsers = parser.add_subparsers(dest="command")
+    args = list(sys.argv[1:] if argv is None else argv)
+    parser = _build_parser()
 
-    subparsers.add_parser("validate-dataset")
-    subparsers.add_parser("security-audit")
-    subparsers.add_parser("benchmark-raycast")
-    subparsers.add_parser("ml-diagnostics")
+    if not args or args[0] in {"-h", "--help"}:
+        parser.print_help()
+        return 0 if args else 1
 
-    args, extra = parser.parse_known_args(argv)
+    command = args[0]
+    handler = COMMANDS.get(command)
+    if handler is None:
+        parser.print_help()
+        return 1
 
-    if args.command == "validate-dataset":
-        return run_dataset_validation(extra)
-    if args.command == "security-audit":
-        return run_security_audit(extra)
-    if args.command == "benchmark-raycast":
-        return run_raycast_benchmark(extra)
-    if args.command == "ml-diagnostics":
-        return run_ml_diagnostics(extra)
-
-    parser.print_help()
-    return 1
+    return handler(args[1:])
 
 
 if __name__ == "__main__":

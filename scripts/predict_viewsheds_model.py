@@ -6,8 +6,9 @@ import json
 import sys
 from pathlib import Path
 
-repo_root = Path(__file__).resolve().parents[1]
-# # sys.path.insert(0, str(repo_root))
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT / "src") not in sys.path:
+    sys.path.insert(0, str(ROOT / "src"))
 
 import numpy as np
 from osgeo import gdal
@@ -26,7 +27,7 @@ gdal.UseExceptions()
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Predict viewsheds with trained model and export GIS layers")
-    p.add_argument("--data-dir", default="data")
+    p.add_argument("--data-dir", default=str(ROOT / "data" / "task2"))
     p.add_argument("--output-dir", default="outputs")
     p.add_argument("--scene-mode", default="fused", choices=["provided", "synthetic", "fused"])
     p.add_argument("--observer-height", type=float, default=1.6)

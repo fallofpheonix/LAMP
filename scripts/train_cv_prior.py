@@ -111,11 +111,11 @@ def metrics_from_masks(pred: np.ndarray, gt: np.ndarray) -> dict:
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Train a classical CV prior model and export path_prior_prob.tif")
-    p.add_argument("--dem", type=Path, default=Path("Task_1/DEM_Subset-Original.tif"))
-    p.add_argument("--sar", type=Path, default=Path("Task_1/SAR-MS.tif"))
-    p.add_argument("--train-paths", type=Path, default=Path("known_paths_train.shp"))
-    p.add_argument("--eval-paths", type=Path, default=Path("known_paths_eval.shp"))
-    p.add_argument("--out-prior", type=Path, default=Path("path_prior_prob.tif"))
+    p.add_argument("--dem", type=Path, default=ROOT / "data" / "task1" / "DEM_Subset-Original.tif")
+    p.add_argument("--sar", type=Path, default=ROOT / "data" / "task1" / "SAR-MS.tif")
+    p.add_argument("--train-paths", type=Path, default=ROOT / "data" / "task1" / "known_paths_train.shp")
+    p.add_argument("--eval-paths", type=Path, default=ROOT / "data" / "task1" / "known_paths_eval.shp")
+    p.add_argument("--out-prior", type=Path, default=ROOT / "data" / "task1" / "path_prior_prob.tif")
     p.add_argument("--out-report", type=Path, default=Path("outputs/prior_training_report.json"))
     p.add_argument("--out-eval-mask", type=Path, default=Path("outputs/prior_eval_mask.tif"))
     p.add_argument("--buffer-m", type=float, default=2.25)

@@ -3,11 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from lamp.tasks.path_tracing.preprocessing.dem_processing import compute_slope_norm, read_raster
+from lamp.tasks.path_tracing.preprocessing.terrain_features import compute_roughness, robust_normalize
+
 
 def build_features(dem, sar, transform):
     import numpy as np
-    from preprocessing.dem_processing import compute_slope_norm
-    from preprocessing.terrain_features import compute_roughness, robust_normalize
     from scipy import ndimage
 
     slope = compute_slope_norm(dem, transform)
@@ -65,20 +66,12 @@ def run_diagnostics(
     eval_paths_path: Path,
     out_dir: Path,
 ) -> None:
-    import sys
-
     import geopandas as gpd
     import matplotlib.pyplot as plt
     import numpy as np
     from rasterio.features import rasterize
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.metrics import auc, precision_recall_curve
-
-    root = Path(__file__).resolve().parents[1]
-    sys.path.insert(0, str(root / "shared_utils/src"))
-    sys.path.insert(0, str(root / "task1-path-tracing/src"))
-
-    from lamp_core.io import read_raster
 
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -96,7 +89,11 @@ def run_diagnostics(
         if frame.crs != dem_band.crs:
             frame = frame.to_crs(dem_band.crs)
         geoms = [geometry.buffer(2.25) for geometry in frame.geometry if geometry is not None]
-        return rasterize([(geometry, 1) for geometry in geoms], out_shape=dem_band.data.shape, transform=dem_band.transform)
+        return rasterize(
+            [(geometry, 1) for geometry in geoms],
+            out_shape=dem_band.data.shape,
+            transform=dem_band.transform,
+        )
 
     train_mask = get_mask(train_paths_path)
     eval_mask = get_mask(eval_paths_path)
