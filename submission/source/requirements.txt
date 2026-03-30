@@ -1,0 +1,7 @@
+-r task1-path-tracing/requirements.txt
+-r task2-viewsheds/requirements.txt
+numpy
+rasterio
+geopandas
+matplotlib
+scikit-learn

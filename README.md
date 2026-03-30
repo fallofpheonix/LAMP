@@ -1,46 +1,49 @@
 # LAMP Engineering Repository
 
-This repository contains two geospatial pipelines and a lightweight operations layer for validation, diagnostics, security scanning, and benchmark reporting.
+A unified geospatial engineering platform for path tracing, viewshed analysis, and operational diagnostics.
 
-## What it does
-- Runs Task 1 path tracing and Task 2 viewshed workflows.
-- Validates core raster/vector inputs before pipeline runs.
-- Generates ML diagnostics and raycasting benchmark reports.
-- Performs a basic source-level security hygiene scan.
+## Modular Architecture
 
-## Modular Layout
-- `core/`: domain models and shared exceptions.
-- `services/`: business logic for validation, diagnostics, audit, and benchmarks.
-- `api/`: CLI adapters and command routing.
-- `utils/`: narrow helper functions.
-- `config/`: environment-driven defaults.
-- `tests/`: repository-level smoke and critical-path unit tests.
+This repository follows a professional, modular "big project" structure:
 
-Task-specific pipelines remain in `task1-path-tracing/` and `task2-viewsheds/`.
+- `src/lamp/`: Main source package
+  - `core/`: Domain models, exceptions, and shared configuration.
+  - `services/`: Operational logic (ML diagnostics, validation, benchmarks).
+  - `api/`: CLI adapters and command-line routing.
+  - `tasks/`: Pipeline implementations.
+    - `path_tracing/`: Task 1 path tracing logic.
+    - `viewsheds/`: Task 2 visibility logic.
+  - `shared/`: Common geospatial and terrain utilities.
+  - `utils/`: Filesystem and I/O helpers.
+- `scripts/`: Unified command-line entry points.
+- `data/`: (Consolidation in progress) Centralized dataset storage.
+- `outputs/`: Task-specific result folders.
+- `tests/`: Consolidated test suite.
 
-## Quick start
+## Installation
+
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r task1-path-tracing/requirements.txt
-pip install -r task2-viewsheds/requirements.txt
+pip install -e .
 ```
 
-Run repository-level tools:
+Requires: Python 3.10+, GDAL, and Geospatial Python stack (Rasterio, GeoPandas, etc.).
+
+## Usage
+
+### Root CLI
 ```bash
-python validate_dataset.py
-python ml_diagnostics.py
-python security_audit.py
-python benchmark_raycast.py --samples 100
+lamp validate-dataset
+lamp security-audit
+lamp ml-diagnostics
 ```
 
-Or via unified CLI:
+### Task 1: Path Tracing
 ```bash
-python -m api.cli validate-dataset
-python -m api.cli security-audit
+python scripts/run_path_tracing.py --dem data/dem.tif --sar data/sar.tif ...
 ```
 
-## Key decisions
-- Kept top-level script names stable for compatibility with existing docs.
-- Moved all operational logic into service modules for testability.
-- Chose pragmatic validation and audit checks instead of full policy engines.
+### Task 2: Viewsheds
+```bash
+python scripts/run_viewsheds.py --data-dir data/task2 --output-dir outputs/task2
+```
+
