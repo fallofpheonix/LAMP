@@ -116,6 +116,7 @@ def run_integration() -> None:
             max_pairs=1,
             top_k_paths=2,
             noise_temperature=0.10,
+            calibrate_weights=False,
         )
 
         rp_mod = _load_run_module()

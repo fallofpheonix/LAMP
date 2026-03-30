@@ -1,9 +1,9 @@
 from __future__ import annotations
 import rasterio
-from lamp_core.terrain import world_to_pixel as _world_to_pixel
-from lamp_core.terrain import pixel_to_world as _pixel_to_world
-from lamp_core.terrain import inside as _inside
-from lamp_core.terrain import bilinear_sample as _bilinear_sample
+from .lamp_core.terrain import world_to_pixel as _world_to_pixel
+from .lamp_core.terrain import pixel_to_world as _pixel_to_world
+from .lamp_core.terrain import inside as _inside
+from .lamp_core.terrain import bilinear_sample as _bilinear_sample
 
 def world_to_pixel(geotransform: tuple, x: float, y: float) -> tuple[int, int]:
     transform = rasterio.Affine.from_gdal(*geotransform)
