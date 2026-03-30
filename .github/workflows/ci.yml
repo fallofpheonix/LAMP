@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: task1-path-tracing
+        working-directory: submission/source/task1-path-tracing
 
     steps:
       - uses: actions/checkout@v4
@@ -25,7 +25,7 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
-          cache-dependency-path: task1-path-tracing/requirements.txt
+          cache-dependency-path: submission/source/task1-path-tracing/requirements.txt
 
       - name: Add ubuntugis PPA
         run: |
@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: task2-viewsheds
+        working-directory: submission/source/task2-viewsheds
 
     steps:
       - uses: actions/checkout@v4
@@ -77,7 +77,7 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
-          cache-dependency-path: task2-viewsheds/requirements.txt
+          cache-dependency-path: submission/source/task2-viewsheds/requirements.txt
 
       - name: Add ubuntugis PPA
         run: |
@@ -104,17 +104,6 @@ jobs:
         run: |
           gdalinfo --version
           python -c "import osgeo.gdal as gdal; print(gdal.VersionInfo())"
-      - name: Install system GDAL
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            gdal-bin libgdal-dev python3-gdal
-
-      - name: Install Python dependencies
-        run: |
-          GDAL_VERSION=$(gdal-config --version)
-          pip install -r requirements.txt
-          pip install "GDAL==${GDAL_VERSION}"
 
       - name: Run unit tests
         run: python -m pytest tests/ -v --tb=short
