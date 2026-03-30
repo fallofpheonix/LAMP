@@ -1,42 +1,74 @@
 # DATA
 
-## Task 1 Required Inputs
+## Canonical Dataset Roots
+- Task 1: `data-briefs/task1/`
+- Task 2: `data-briefs/task2/`
 
-- DEM: `DEM_Subset-Original.tif`
-- SAR: `SAR-MS.tif`
-- observer / terminal marks: `Marks_Brief1.shp`
-- building footprints: `BuildingFootprints.shp`
+## Task 1 Files
+- terrain:
+  - `DEM_Subset-Original.tif`
+  - `DEM_Subset-WithBuildings.tif`
+- imagery:
+  - `SAR-MS.tif`
+  - `OrthoImage_Subset.tif`
+- vectors:
+  - `Marks_Brief1.shp`
+  - `BuildingFootprints.shp`
+- reference material:
+  - `Site_Map_With_ROI.png`
+  - `Site_Plan.pdf`
+  - `LAMP_Project_Page.md`
 
-## Task 1 Optional Inputs
+## Task 2 Files
+- terrain:
+  - `DEM_Subset-Original.tif`
+  - `DEM_Subset-WithBuildings.tif`
+- imagery:
+  - `OrthoImage_Subset.tif`
+- vectors:
+  - `Marks_Brief2.shp`
+  - `BuildingFootprints.shp`
+- reference material:
+  - `Site_Map_With_ROI.png`
+  - `Site_Plan.pdf`
 
-- training labels: `known_paths_train.shp`
-- evaluation labels: `known_paths_eval.shp`
+## Alignment Assumptions
+- Current default configuration assumes:
+  - Task 1 rasters share a common CRS and grid
+  - Task 2 rasters share a common CRS and grid
+- Coupling rule:
+  - Task 1 DEM is the target grid
+  - Task 2 visibility raster is reprojected if needed
 
-## Task 2 Required Inputs
+## Feature Semantics
+- slope:
+  - derived from Task 1 DEM
+- roughness:
+  - derived from local DEM variation
+- surface penalty:
+  - derived from SAR plus terrain features
+- path prior:
+  - deterministic or learned raster in `[0,1]`
+- visibility probability:
+  - mean fraction of observer viewsheds covering a cell
 
-- bare-earth DEM: `dem_original.tif`
-- DEM with buildings: `dem_with_buildings.tif`
-- observer marks: `Marks_Brief2.shp`
-- building footprints: `BuildingFootprints.shp`
+## Label Availability
+- default config:
+  - `known_paths_train: null`
+  - `known_paths_eval: null`
+- implication:
+  - evaluation metrics requiring path labels are optional until labels are supplied
 
-## Invariants
+## Output Data Contract
+- rasters:
+  - GeoTIFF
+- vectors:
+  - GeoJSON, GPKG, or SHP depending on pipeline step
+- comparison artifact root:
+  - `outputs_production/<run_name>/`
 
-- rasters and vectors must use a projected CRS
-- Task 1 rasters are aligned to the DEM grid before feature generation
-- nodata values are converted to `NaN` where applicable
-- observer marks outside raster bounds are discarded
-- building footprints are rasterized onto the reference DEM grid
-
-## Active Data Locations
-
-- root config still references legacy Task 1 paths such as `task1-path-tracing/Task_1/...`
-- legacy submission Task 2 test data lives under `submission/source/task2-viewsheds/data/`
-- repository-level `data/` is not yet authoritative on this branch
-
-## Edge Cases
-
-- empty rasters
-- invalid / empty geometries
-- CRS mismatch
-- no valid observer marks after reprojection / clipping
-- missing known-path labels while calibration is enabled
+## Data Quality Risks
+- missing labels
+- raster misalignment across tasks
+- nodata propagation
+- environment-specific GDAL behavior

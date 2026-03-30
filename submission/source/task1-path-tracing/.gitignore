@@ -1,7 +1,0 @@
-__pycache__/
-*.pyc
-.venv/
-outputs/*.tif
-outputs/*.gpkg
-outputs/*.geojson
-outputs/*.json

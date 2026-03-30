@@ -1,28 +1,37 @@
 # TASKS
 
-## In Progress
-
-- Close PR `#5` CI failures by fixing legacy submission test/runtime assumptions
-- Add GPT-ingestion context documents at repository root
+## IN PROGRESS
+- Convert root docs into the canonical context surface.
+- Keep Task 1 visibility coupling aligned with current config and CLI behavior.
 
 ## TODO
+- Validate real Task 2 -> Task 1 handoff using `viewshed_probability.tif` from `scripts/run_viewsheds.py`.
+- Install or provision GDAL / `osgeo` for the viewshed runtime.
+- Run coupled evaluation against real known-path labels once label paths are available.
+- Add regression test covering end-to-end compare mode artifact creation.
+- Remove or clearly deprecate conflicting legacy docs under `submission/`.
+- Add a single authoritative output schema description for generated artifacts.
 
-- Replace legacy `sys.path` injection in root services with package imports under `lamp.tasks.*`
-- Align root default paths with a single repository-level data layout
-- Remove or freeze duplicate code between `src/lamp/` and `submission/source/`
-- Add root-level tests for root CLI entry points and script entry points
-- Normalize packaging metadata in root `pyproject.toml` to match actual build/install flow
+## BLOCKED
+- Real Task 2 execution:
+  - blocked by missing `osgeo`
+- Real archaeological metric comparison:
+  - blocked by absent default known-path labels in `pipeline.yaml`
 
-## Blocked
+## DONE
+- Removed inactive duplicate code under `submission/source/`.
+- Repointed CI to the root package and root tests.
+- Added visibility as an optional fifth cost term in Task 1.
+- Added constrained visibility-weight calibration.
+- Added raster alignment and reprojection for visibility coupling.
+- Added `--compare-visibility-coupling`.
+- Added smoke outputs for baseline vs coupled comparison.
+- Added coupling-focused tests.
+- Restored missing source shims in `src/lamp/core/`.
 
-- Workflow-file edits from this environment
-- blocker: GitHub token lacks `workflow` scope
-- End-to-end Task 2 runtime verification on machines without GDAL Python bindings
-- blocker: `osgeo` import availability depends on system install
-
-## Done Recently
-
-- Vendored `lamp_core` into legacy Task 1 and Task 2 `src/` trees
-- Fixed Task 1 synthetic integration configuration
-- Hardened Task 2 smoke tests against missing generated artifacts
-- Pushed CI-fix commit `59b05aa` to PR `#5`
+## Deferred
+- new ML models
+- RL / GNN movement modeling
+- audibility pipeline
+- multi-temporal scene management
+- engine / visualization integrations

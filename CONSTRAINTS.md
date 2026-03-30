@@ -1,30 +1,42 @@
 # CONSTRAINTS
 
-## Repository Constraints
+## Engineering Constraints
+- deterministic behavior is preferred over stochastic black-box redesigns
+- existing task CLIs and file outputs must remain usable
+- visibility coupling must be optional
+- root config file remains the default control surface
 
-- Two active code layouts exist:
-- root `src/lamp`
-- legacy `submission/source`
-- CI for PR `#5` executes legacy task trees, not the root package
-
-## Dependency Constraints
-
-- Task 2 code using `osgeo` requires a system GDAL install plus matching Python bindings
-- Some root service code still depends on legacy modules and path injection
+## Data Constraints
+- coupling depends on raster compatibility across tasks
+- visibility input must be clipped to `[0,1]`
+- obstacle and nodata handling must dominate all soft costs
+- default repo config has no path labels enabled
 
 ## Environment Constraints
-
-- Current GitHub token has `repo` scope but not `workflow`
-- consequence: workflow-file edits cannot be pushed from this environment
-- CI runners use Python `3.11`
-
-## Operational Constraints
-
-- Raster operations are array-wide and memory-bound on large DEMs
-- Full viewshed generation cost scales with raster size and observer count
-- Calibration requires known path labels; it must be disabled when labels are absent
+- local execution only
+- current environment lacks `osgeo`, blocking Task 2 runtime verification
+- no assumption of GPU availability
 
 ## Scope Constraints
+- in scope:
+  - Task 1 / Task 2 coupling
+  - deterministic viewshed reuse
+  - calibration and evaluation
+  - GIS artifact generation
+- out of scope:
+  - new CV models
+  - RL / GNN movement systems
+  - audibility
+  - game-engine visualization
+  - multi-temporal scene graphs
 
-- Current work is CI stabilization and context capture
-- Full architectural unification is not complete on this branch
+## Compatibility Constraints
+- backward compatibility:
+  - `w_visibility = 0` preserves prior Task 1 behavior
+- comparison mode must not alter the single-scenario execution path
+- legacy docs under `submission/` are not authoritative
+
+## Scientific Constraints
+- visibility is treated as a measurable movement constraint, not as a replacement for terrain cost
+- results must be reported as baseline-vs-coupled comparisons
+- negative results are acceptable if the framework is valid and reproducible

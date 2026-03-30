@@ -2,7 +2,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from services.security_audit_service import find_path_traversal_risks, render_security_report
+from lamp.services.security_audit_service import find_path_traversal_risks, render_security_report
 
 
 class TestSecurityAuditService(unittest.TestCase):

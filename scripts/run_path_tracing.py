@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import dataclass, replace
 from itertools import combinations
 from pathlib import Path
 
@@ -104,8 +105,118 @@ def build_obstacle_mask(buildings_path: Path, crs: object, profile: dict) -> np.
     ).astype(bool)
 
 
-def run(config: PipelineConfig) -> dict:
-    config.out_dir.mkdir(parents=True, exist_ok=True)
+@dataclass
+class ScenarioArtifacts:
+    summary: dict
+    density: np.ndarray
+    raster_profile: dict
+    output_dir: Path
+
+
+def _transform_components(transform: rasterio.Affine) -> tuple[float, float, float, float, float, float]:
+    return (
+        float(transform.a),
+        float(transform.b),
+        float(transform.c),
+        float(transform.d),
+        float(transform.e),
+        float(transform.f),
+    )
+
+
+def load_visibility_probability(
+    src_path: Path | None,
+    ref_profile: dict,
+) -> tuple[np.ndarray | None, dict | None]:
+    if src_path is None:
+        return None, None
+
+    with rasterio.open(src_path) as src:
+        source_meta = {
+            "source_path": str(src_path),
+            "source_crs": str(src.crs),
+            "source_shape": [int(src.height), int(src.width)],
+            "source_transform": list(_transform_components(src.transform)),
+            "source_semantics": "mean_visibility_probability",
+        }
+        same_crs = str(src.crs) == str(ref_profile["crs"])
+        same_shape = src.height == ref_profile["height"] and src.width == ref_profile["width"]
+        same_transform = np.allclose(
+            _transform_components(src.transform),
+            _transform_components(ref_profile["transform"]),
+        )
+
+        if same_crs and same_shape and same_transform:
+            dst = src.read(1).astype(np.float32)
+        else:
+            dst = np.empty((ref_profile["height"], ref_profile["width"]), dtype=np.float32)
+            reproject(
+                source=src.read(1),
+                destination=dst,
+                src_transform=src.transform,
+                src_crs=src.crs,
+                dst_transform=ref_profile["transform"],
+                dst_crs=ref_profile["crs"],
+                resampling=Resampling.bilinear,
+            )
+
+        nodata = src.nodata
+        if nodata is not None:
+            dst = np.where(np.isclose(dst, nodata), np.nan, dst)
+        dst = np.clip(dst, 0.0, 1.0).astype(np.float32)
+
+    alignment = {
+        **source_meta,
+        "reference_crs": str(ref_profile["crs"]),
+        "reference_shape": [int(ref_profile["height"]), int(ref_profile["width"])],
+        "reference_transform": list(_transform_components(ref_profile["transform"])),
+        "crs_equal_before_reproject": same_crs,
+        "shape_equal_before_reproject": same_shape,
+        "transform_equal_before_reproject": same_transform,
+        "resampled": not (same_crs and same_shape and same_transform),
+    }
+    return dst, alignment
+
+
+def write_comparison_figure(
+    path: Path,
+    baseline_density: np.ndarray,
+    coupled_density: np.ndarray,
+    delta_density: np.ndarray,
+) -> bool:
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        return False
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig, axes = plt.subplots(1, 3, figsize=(12, 4), constrained_layout=True)
+    panels = [
+        (baseline_density, "Baseline Density", "viridis"),
+        (coupled_density, "Coupled Density", "viridis"),
+        (delta_density, "Coupled - Baseline", "coolwarm"),
+    ]
+    for ax, (arr, title, cmap) in zip(axes, panels):
+        im = ax.imshow(arr, cmap=cmap)
+        ax.set_title(title)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        fig.colorbar(im, ax=ax, shrink=0.8)
+    fig.savefig(path, dpi=160)
+    plt.close(fig)
+    return True
+
+
+def _run_single(
+    config: PipelineConfig,
+    *,
+    scenario_name: str,
+    scenario_out_dir: Path,
+    visibility_probability: np.ndarray | None = None,
+    visibility_alignment: dict | None = None,
+) -> ScenarioArtifacts:
+    output_dir = scenario_out_dir
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     with rasterio.open(config.dem_path) as dem_src:
         dem_meta = {
@@ -183,12 +294,15 @@ def run(config: PipelineConfig) -> dict:
         config.cost_w_roughness,
         config.cost_w_surface,
         config.cost_w_path_prior,
+        config.cost_w_visibility if visibility_probability is not None else 0.0,
     )
 
     known_path_mask = None
     calibration_report = None
 
     if config.known_paths_path is not None:
+        if not config.known_paths_path.exists():
+            raise FileNotFoundError(f"Known paths layer not found: {config.known_paths_path}")
         known_path_mask = rasterize_known_paths(
             config.known_paths_path,
             out_shape=(dem_bundle.profile["height"], dem_bundle.profile["width"]),
@@ -198,12 +312,13 @@ def run(config: PipelineConfig) -> dict:
 
     if config.calibrate_weights:
         if known_path_mask is None:
-            raise RuntimeError("--calibrate-weights requires --known-paths")
+            raise RuntimeError("--calibrate-weights requires an existing --known-paths layer")
         best_w, calib_results = calibrate_weights(
             slope_norm=slope_norm,
             roughness=roughness,
             surface_penalty=surface_penalty,
             path_prior=path_prior,
+            visibility_probability=visibility_probability,
             obstacle_mask=obstacles,
             terminals=terminals,
             known_path_mask=known_path_mask,
@@ -211,7 +326,10 @@ def run(config: PipelineConfig) -> dict:
             top_k=config.top_k_paths,
             rng_seed=config.rng_seed,
             temperature=config.noise_temperature,
-            weight_candidates=default_weight_grid(selected_weights),
+            weight_candidates=default_weight_grid(
+                selected_weights,
+                enable_visibility_search=visibility_probability is not None,
+            ),
         )
         selected_weights = best_w
         calibration_report = {
@@ -220,6 +338,7 @@ def run(config: PipelineConfig) -> dict:
                 "roughness": best_w[1],
                 "surface": best_w[2],
                 "path_prior": best_w[3],
+                "visibility": best_w[4],
             },
             "results": [
                 {
@@ -228,6 +347,7 @@ def run(config: PipelineConfig) -> dict:
                         "roughness": r.weights[1],
                         "surface": r.weights[2],
                         "path_prior": r.weights[3],
+                        "visibility": r.weights[4],
                     },
                     "topk_recall": r.topk_recall,
                     "iou": r.iou,
@@ -237,13 +357,14 @@ def run(config: PipelineConfig) -> dict:
                 for r in calib_results
             ],
         }
-        (config.out_dir / "calibration_report.json").write_text(json.dumps(calibration_report, indent=2), encoding="utf-8")
+        (output_dir / "calibration_report.json").write_text(json.dumps(calibration_report, indent=2), encoding="utf-8")
 
     cost = compute_cost_surface(
         slope_norm,
         roughness,
         surface_penalty,
         path_prior,
+        visibility_probability=visibility_probability,
         obstacle_mask=obstacles,
         weights=selected_weights,
     )
@@ -295,11 +416,11 @@ def run(config: PipelineConfig) -> dict:
     cell_area = abs(float(dem_bundle.transform.a) * float(dem_bundle.transform.e))
     lost_gdf = mask_to_polygon_gdf(lost_mask, dem_bundle.transform, dem_bundle.crs, min_area=cell_area * 4.0)
 
-    write_vector(paths_gdf, config.out_dir / "predicted_paths.geojson")
-    write_vector(paths_gdf, config.out_dir / "predicted_paths.gpkg")
-    write_vector(centerline_gdf, config.out_dir / "predicted_centerlines.geojson")
-    write_vector(lost_centerline_gdf, config.out_dir / "lost_path_centerlines.geojson")
-    write_vector(lost_gdf, config.out_dir / "lost_path_candidates.geojson")
+    write_vector(paths_gdf, output_dir / "predicted_paths.geojson")
+    write_vector(paths_gdf, output_dir / "predicted_paths.gpkg")
+    write_vector(centerline_gdf, output_dir / "predicted_centerlines.geojson")
+    write_vector(lost_centerline_gdf, output_dir / "lost_path_centerlines.geojson")
+    write_vector(lost_gdf, output_dir / "lost_path_candidates.geojson")
 
     raster_profile = dem_bundle.profile.copy()
     raster_profile.update(
@@ -308,12 +429,14 @@ def run(config: PipelineConfig) -> dict:
         transform=dem_bundle.transform,
         crs=dem_bundle.crs,
     )
-    write_raster_float32(config.out_dir / "probability_heatmap.tif", density_acc, raster_profile)
-    write_raster_float32(config.out_dir / "detected_paths.tif", path_prior.astype(np.float32), raster_profile)
-    write_raster_float32(config.out_dir / "movement_cost.tif", np.where(np.isfinite(cost), cost, np.nan), raster_profile)
-    write_raster_float32(config.out_dir / "movement_dense_mask.tif", dense_mask.astype(np.float32), raster_profile)
-    write_raster_float32(config.out_dir / "skeleton_mask.tif", skeleton_mask.astype(np.float32), raster_profile)
-    write_raster_float32(config.out_dir / "lost_paths_mask.tif", lost_mask.astype(np.float32), raster_profile)
+    write_raster_float32(output_dir / "probability_heatmap.tif", density_acc, raster_profile)
+    write_raster_float32(output_dir / "detected_paths.tif", path_prior.astype(np.float32), raster_profile)
+    write_raster_float32(output_dir / "movement_cost.tif", np.where(np.isfinite(cost), cost, np.nan), raster_profile)
+    write_raster_float32(output_dir / "movement_dense_mask.tif", dense_mask.astype(np.float32), raster_profile)
+    write_raster_float32(output_dir / "skeleton_mask.tif", skeleton_mask.astype(np.float32), raster_profile)
+    write_raster_float32(output_dir / "lost_paths_mask.tif", lost_mask.astype(np.float32), raster_profile)
+    if visibility_probability is not None:
+        write_raster_float32(output_dir / "visibility_probability.tif", visibility_probability.astype(np.float32), raster_profile)
 
     metrics = None
     if known_path_mask is not None:
@@ -323,8 +446,8 @@ def run(config: PipelineConfig) -> dict:
             gt_mask=known_path_mask,
             top_k=config.top_k_paths,
         )
-        write_raster_float32(config.out_dir / "known_paths_mask.tif", known_path_mask.astype(np.float32), raster_profile)
-        write_raster_float32(config.out_dir / "predicted_topk_mask.tif", pred_topk_mask.astype(np.float32), raster_profile)
+        write_raster_float32(output_dir / "known_paths_mask.tif", known_path_mask.astype(np.float32), raster_profile)
+        write_raster_float32(output_dir / "predicted_topk_mask.tif", pred_topk_mask.astype(np.float32), raster_profile)
 
     preprocess_report = {
         "dem": dem_meta,
@@ -342,8 +465,14 @@ def run(config: PipelineConfig) -> dict:
             "mode": path_prior_source,
             "source_raster": str(config.path_prior_raster) if config.path_prior_raster else None,
         },
+        "scenario": scenario_name,
+        "visibility": {
+            "source": config.visibility_source if visibility_probability is not None else None,
+            "enabled": visibility_probability is not None,
+            "alignment": visibility_alignment,
+        },
     }
-    (config.out_dir / "preprocess_report.json").write_text(json.dumps(preprocess_report, indent=2), encoding="utf-8")
+    (output_dir / "preprocess_report.json").write_text(json.dumps(preprocess_report, indent=2), encoding="utf-8")
 
     summary = {
         "terminals": len(terminals),
@@ -362,15 +491,109 @@ def run(config: PipelineConfig) -> dict:
             "roughness": selected_weights[1],
             "surface": selected_weights[2],
             "path_prior": selected_weights[3],
+            "visibility": selected_weights[4],
         },
+        "scenario": scenario_name,
     }
     if metrics is not None:
         summary.update(metrics)
     if calibration_report is not None:
         summary["calibration_candidates"] = len(calibration_report["results"])
 
-    (config.out_dir / "run_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    return summary
+    (output_dir / "run_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    return ScenarioArtifacts(summary=summary, density=density_acc, raster_profile=raster_profile, output_dir=output_dir)
+
+
+def run(config: PipelineConfig) -> dict:
+    if not config.compare_visibility_coupling:
+        visibility_probability = None
+        visibility_alignment = None
+        if config.visibility_raster is not None and config.cost_w_visibility > 0.0:
+            dem_bundle = read_raster(config.dem_path)
+            visibility_probability, visibility_alignment = load_visibility_probability(
+                config.visibility_raster,
+                {
+                    "height": dem_bundle.profile["height"],
+                    "width": dem_bundle.profile["width"],
+                    "transform": dem_bundle.transform,
+                    "crs": dem_bundle.crs,
+                },
+            )
+        return _run_single(
+            config,
+            scenario_name="visibility_coupled" if visibility_probability is not None else "baseline",
+            scenario_out_dir=config.out_dir,
+            visibility_probability=visibility_probability,
+            visibility_alignment=visibility_alignment,
+        ).summary
+
+    if config.visibility_raster is None:
+        raise RuntimeError("--compare-visibility-coupling requires --visibility-raster")
+
+    dem_bundle = read_raster(config.dem_path)
+    visibility_probability, visibility_alignment = load_visibility_probability(
+        config.visibility_raster,
+        {
+            "height": dem_bundle.profile["height"],
+            "width": dem_bundle.profile["width"],
+            "transform": dem_bundle.transform,
+            "crs": dem_bundle.crs,
+        },
+    )
+
+    baseline_config = replace(config, out_dir=config.out_dir / "baseline", cost_w_visibility=0.0)
+    coupled_config = replace(config, out_dir=config.out_dir / "visibility_coupled")
+
+    baseline = _run_single(
+        baseline_config,
+        scenario_name="baseline",
+        scenario_out_dir=baseline_config.out_dir,
+        visibility_probability=None,
+        visibility_alignment=None,
+    )
+    coupled = _run_single(
+        coupled_config,
+        scenario_name="visibility_coupled",
+        scenario_out_dir=coupled_config.out_dir,
+        visibility_probability=visibility_probability,
+        visibility_alignment=visibility_alignment,
+    )
+
+    delta_density = coupled.density - baseline.density
+    write_raster_float32(config.out_dir / "comparison_density_delta.tif", delta_density, baseline.raster_profile)
+    figure_written = write_comparison_figure(
+        config.out_dir / "comparison_visibility_coupling.png",
+        baseline.density,
+        coupled.density,
+        delta_density,
+    )
+
+    metrics_delta: dict[str, float] = {}
+    for metric in ("topk_recall", "iou", "precision", "f1"):
+        if metric in baseline.summary and metric in coupled.summary:
+            metrics_delta[f"{metric}_delta"] = float(coupled.summary[metric]) - float(baseline.summary[metric])
+
+    comparison_summary = {
+        "comparison_mode": True,
+        "visibility_source": config.visibility_source,
+        "visibility_raster": str(config.visibility_raster),
+        "figure_written": figure_written,
+        "baseline_dir": str(baseline.output_dir),
+        "visibility_coupled_dir": str(coupled.output_dir),
+        "baseline": baseline.summary,
+        "visibility_coupled": coupled.summary,
+        "delta_metrics": metrics_delta,
+        "delta_density": {
+            "min": float(np.nanmin(delta_density)),
+            "max": float(np.nanmax(delta_density)),
+            "mean": float(np.nanmean(delta_density)),
+        },
+    }
+    (config.out_dir / "comparison_summary.json").write_text(
+        json.dumps(comparison_summary, indent=2),
+        encoding="utf-8",
+    )
+    return comparison_summary
 
 
 def parse_args() -> PipelineConfig:
@@ -382,6 +605,8 @@ def parse_args() -> PipelineConfig:
     parser.add_argument("--known-paths", type=Path, default=DEFAULT_CONFIG.known_paths_path)
     parser.add_argument("--path-prior-raster", type=Path, default=DEFAULT_CONFIG.path_prior_raster)
     parser.add_argument("--path-prior-mode", choices=["learned", "deterministic"], default=DEFAULT_CONFIG.path_prior_mode)
+    parser.add_argument("--visibility-raster", type=Path, default=DEFAULT_CONFIG.visibility_raster)
+    parser.add_argument("--visibility-source", choices=["deterministic", "model"], default=DEFAULT_CONFIG.visibility_source)
     parser.add_argument("--out", type=Path, default=DEFAULT_CONFIG.out_dir)
     parser.add_argument("--samples", type=int, default=DEFAULT_CONFIG.samples_per_pair)
     parser.add_argument("--max-pairs", type=int, default=DEFAULT_CONFIG.max_pairs, help="0 means all terminal pairs")
@@ -391,7 +616,14 @@ def parse_args() -> PipelineConfig:
     parser.add_argument("--w-roughness", type=float, default=DEFAULT_CONFIG.cost_w_roughness)
     parser.add_argument("--w-surface", type=float, default=DEFAULT_CONFIG.cost_w_surface)
     parser.add_argument("--w-path-prior", type=float, default=DEFAULT_CONFIG.cost_w_path_prior)
+    parser.add_argument("--w-visibility", type=float, default=DEFAULT_CONFIG.cost_w_visibility)
     parser.add_argument("--calibrate-weights", action="store_true", default=DEFAULT_CONFIG.calibrate_weights)
+    parser.add_argument(
+        "--compare-visibility-coupling",
+        action="store_true",
+        default=DEFAULT_CONFIG.compare_visibility_coupling,
+        help="Emit baseline and visibility-coupled outputs in a single run",
+    )
     parser.add_argument("--calibration-samples", type=int, default=DEFAULT_CONFIG.calibration_samples)
     parser.add_argument("--seed", type=int, default=DEFAULT_CONFIG.rng_seed)
     args = parser.parse_args()
@@ -404,6 +636,8 @@ def parse_args() -> PipelineConfig:
         known_paths_path=args.known_paths,
         path_prior_raster=args.path_prior_raster,
         path_prior_mode=args.path_prior_mode,
+        visibility_raster=args.visibility_raster,
+        visibility_source=args.visibility_source,
         out_dir=args.out,
         samples_per_pair=args.samples,
         max_pairs=args.max_pairs,
@@ -413,7 +647,9 @@ def parse_args() -> PipelineConfig:
         cost_w_roughness=args.w_roughness,
         cost_w_surface=args.w_surface,
         cost_w_path_prior=args.w_path_prior,
+        cost_w_visibility=args.w_visibility,
         calibrate_weights=args.calibrate_weights,
+        compare_visibility_coupling=args.compare_visibility_coupling,
         calibration_samples=args.calibration_samples,
         rng_seed=args.seed,
     )

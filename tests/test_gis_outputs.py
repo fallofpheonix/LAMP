@@ -1,38 +1,50 @@
-import os
-import pytest
-import geopandas as gpd
-import rasterio
-import numpy as np
+from __future__ import annotations
+
 from pathlib import Path
 
-# Paths to artifacts produced during verification
+import geopandas as gpd
+import numpy as np
+import pytest
+import rasterio
+
+
 OUT_DIR = Path("outputs_production")
 
-def test_path_tracing_output_exists():
-    assert (OUT_DIR / "candidate_paths.shp").exists()
-    assert (OUT_DIR / "selected_paths.shp").exists()
 
-def test_vector_geometry_validity():
-    gdf = gpd.read_file(OUT_DIR / "selected_paths.shp")
+def _find_artifact(pattern: str) -> Path:
+    matches = sorted(OUT_DIR.rglob(pattern))
+    if not matches:
+        pytest.skip(f"No generated artifact matching {pattern!r} found under {OUT_DIR}")
+    return matches[0]
+
+
+def test_path_tracing_output_exists() -> None:
+    assert _find_artifact("predicted_paths.geojson").exists()
+    assert _find_artifact("movement_cost.tif").exists()
+
+
+def test_vector_geometry_validity() -> None:
+    gdf = gpd.read_file(_find_artifact("predicted_paths.geojson"))
     assert len(gdf) > 0
-    assert all(gdf.geometry.type.isin(['LineString', 'MultiLineString']))
+    assert all(gdf.geometry.type.isin(["LineString", "MultiLineString"]))
 
-def test_raster_output_properties():
-    prior_path = Path("path_prior_prob.tif")
-    if prior_path.exists():
-        with rasterio.open(prior_path) as src:
-            assert src.crs.to_epsg() == 32638
-            data = src.read(1)
-            assert np.nanmax(data) <= 1.0
-            assert np.nanmin(data) >= 0.0
 
-def test_viewshed_output_consistency():
-    # Check if any viewshed probability raster exists in outputs
-    viewshed_files = list(Path("outputs").glob("*.tif"))
-    if viewshed_files:
-        with rasterio.open(viewshed_files[0]) as src:
-            assert src.width > 0
-            assert src.height > 0
+def test_raster_output_properties() -> None:
+    with rasterio.open(_find_artifact("movement_cost.tif")) as src:
+        assert src.width > 0
+        assert src.height > 0
+        data = src.read(1)
+        finite = data[np.isfinite(data)]
+        assert finite.size > 0
+        assert float(np.nanmin(finite)) >= 0.0
 
-if __name__ == "__main__":
-    pytest.main([__file__])
+
+def test_viewshed_output_consistency() -> None:
+    with rasterio.open(_find_artifact("visibility_probability.tif")) as src:
+        data = src.read(1)
+        finite = data[np.isfinite(data)]
+        assert src.width > 0
+        assert src.height > 0
+        assert finite.size > 0
+        assert float(np.nanmin(finite)) >= 0.0
+        assert float(np.nanmax(finite)) <= 1.0

@@ -1,44 +1,63 @@
 # SETUP
 
-## Root Package
+## Environment
+- working directory:
+  - `/Users/fallofpheonix/Project/Human AI/LAMP`
+- primary virtualenv:
+  - `.venv/`
+- Python path for local execution:
+  - `PYTHONPATH=src`
 
+## Required Python Packages
+- core:
+  - `numpy`
+  - `rasterio`
+  - `geopandas`
+  - `shapely`
+  - `pytest`
+- optional / task-specific:
+  - `matplotlib` for comparison figures
+  - `scikit-image` for skeletonization fallback path
+  - `osgeo` / GDAL Python bindings for `scripts/run_viewsheds.py`
+
+## Install Pattern
 ```bash
-python3 -m venv .venv
+python -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip
 pip install -e .
 ```
 
-## Legacy Submission CI Surfaces
-
-### Task 1
-
+## Verification Commands
+- tests:
 ```bash
-cd submission/source/task1-path-tracing
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-PYTHONPATH=src python -m pytest tests/ -v --tb=short
+PYTHONPATH=src .venv/bin/python -m pytest
+```
+- Task 1 compare smoke:
+```bash
+PYTHONPATH=src .venv/bin/python scripts/run_path_tracing.py \
+  --path-prior-mode deterministic \
+  --visibility-raster outputs/tmp/synthetic_visibility.tif \
+  --w-visibility 0.2 \
+  --compare-visibility-coupling \
+  --out outputs_production/visibility_compare_smoke
 ```
 
-### Task 2
+## Current Environment Limitation
+- `scripts/run_viewsheds.py` requires `from osgeo import gdal`
+- current local environments do not provide `osgeo`
+- consequence:
+  - Task 2 real-data execution is blocked until GDAL Python bindings are installed
 
-```bash
-cd submission/source/task2-viewsheds
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-pip install "GDAL==$(gdal-config --version)"
-python -m pytest tests/ -v --tb=short
-```
+## Expected Runtime Surfaces
+- Task 1:
+  - local CPU execution
+  - file-based outputs in `outputs_production/`
+- Task 2:
+  - local CPU execution
+  - GDAL-backed raster writes
 
-## System Dependencies
-
-- `gdal-bin`
-- `libgdal-dev`
-
-## Validation Commands
-
-```bash
-PYTHONPATH=src python tests/integration/test_task1_synthetic.py
-python scripts/run_path_tracing.py --help
-python scripts/run_viewsheds.py --help
-```
+## Generated Proof Artifacts
+- current verified comparison outputs:
+  - `outputs_production/visibility_compare_smoke/comparison_summary.json`
+  - `outputs_production/visibility_compare_smoke/comparison_density_delta.tif`
+  - `outputs_production/visibility_compare_smoke/comparison_visibility_coupling.png`

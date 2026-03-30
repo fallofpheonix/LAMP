@@ -1,49 +1,52 @@
 # LAMP Engineering Repository
 
-A unified geospatial engineering platform for path tracing, viewshed analysis, and operational diagnostics.
+Deterministic geospatial pipelines for El Bagawat path tracing, viewshed analysis, and visibility-coupled path inference.
 
-## Modular Architecture
+## Canonical Docs
+- [SPEC.md](SPEC.md): system boundary
+- [ARCH.md](ARCH.md): module map and data flow
+- [STATE.md](STATE.md): current verified state
+- [TASKS.md](TASKS.md): active execution frontier
+- [API.md](API.md): CLI and interface surface
+- [DATA.md](DATA.md): dataset and artifact contract
+- [SETUP.md](SETUP.md): local execution requirements
+- [CONSTRAINTS.md](CONSTRAINTS.md): non-negotiable limits
 
-This repository follows a professional, modular "big project" structure:
+These root docs are the primary context surface. Legacy material under `submission/` is not authoritative.
 
-- `src/lamp/`: Main source package
-  - `core/`: Domain models, exceptions, and shared configuration.
-  - `services/`: Operational logic (ML diagnostics, validation, benchmarks).
-  - `api/`: CLI adapters and command-line routing.
-  - `tasks/`: Pipeline implementations.
-    - `path_tracing/`: Task 1 path tracing logic.
-    - `viewsheds/`: Task 2 visibility logic.
-  - `shared/`: Common geospatial and terrain utilities.
-  - `utils/`: Filesystem and I/O helpers.
-- `scripts/`: Unified command-line entry points.
-- `data/`: (Consolidation in progress) Centralized dataset storage.
-- `outputs/`: Task-specific result folders.
-- `tests/`: Consolidated test suite.
+## Repository Layout
+- `src/lamp/`
+  - `core/`
+  - `api/`
+  - `services/`
+  - `tasks/path_tracing/`
+  - `tasks/viewsheds/`
+- `scripts/`
+- `tests/`
+- `data-briefs/`
+- `outputs_production/`
 
-## Installation
-
+## Primary Entry Points
+- root operations:
 ```bash
-pip install -e .
+PYTHONPATH=src python -m lamp.api.cli validate-dataset
+PYTHONPATH=src python -m lamp.api.cli security-audit
+PYTHONPATH=src python -m lamp.api.cli benchmark-raycast
+PYTHONPATH=src python -m lamp.api.cli ml-diagnostics
 ```
 
-Requires: Python 3.10+, GDAL, and Geospatial Python stack (Rasterio, GeoPandas, etc.).
-
-## Usage
-
-### Root CLI
+- Task 1:
 ```bash
-lamp validate-dataset
-lamp security-audit
-lamp ml-diagnostics
+PYTHONPATH=src python scripts/run_path_tracing.py
 ```
 
-### Task 1: Path Tracing
+- Task 2:
 ```bash
-python scripts/run_path_tracing.py --dem data/dem.tif --sar data/sar.tif ...
+PYTHONPATH=src python scripts/run_viewsheds.py --data-dir data-briefs/task2 --output-dir outputs/task2
 ```
 
-### Task 2: Viewsheds
-```bash
-python scripts/run_viewsheds.py --data-dir data/task2 --output-dir outputs/task2
-```
-
+## Current Status
+- Task 1 and Task 2 pipelines exist.
+- Visibility coupling is implemented in Task 1.
+- Local tests pass.
+- Real Task 2 runtime validation is blocked by missing `osgeo`.
