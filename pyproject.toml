@@ -30,10 +30,10 @@ dev = [
 
 [project.scripts]
 lamp = "lamp.api.cli:main"
-lamp-validate = "lamp.api.dataset_validation_cli:main"
-lamp-diagnostics = "lamp.api.ml_diagnostics_cli:main"
-lamp-security = "lamp.api.security_audit_cli:main"
-lamp-benchmark = "lamp.api.raycast_benchmark_cli:main"
+lamp-validate = "lamp.api.dataset_validation_cli:run"
+lamp-diagnostics = "lamp.api.ml_diagnostics_cli:run"
+lamp-security = "lamp.api.security_audit_cli:run"
+lamp-benchmark = "lamp.api.raycast_benchmark_cli:run"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -4,7 +4,6 @@ import time
 
 import numpy as np
 
-from lamp.core.exceptions import DependencyUnavailableError
 from lamp.core.models import BenchmarkResult
 from lamp.tasks.viewsheds.mesh_raycast import build_mesh_scene, dem_to_mesh, mesh_is_visible
 from lamp.tasks.viewsheds.raycast import compute_viewshed
@@ -12,7 +11,7 @@ from lamp.tasks.viewsheds.raycast import compute_viewshed
 
 def run_raycast_benchmark(samples: int = 100) -> BenchmarkResult:
     if samples <= 0:
-        raise DependencyUnavailableError("samples must be positive")
+        raise ValueError("samples must be positive")
 
     dem = np.random.uniform(0, 100, (100, 100)).astype(np.float32)
     geotransform = (0, 1, 0, 0, 0, -1)

@@ -13,12 +13,14 @@ ENV C_INCLUDE_PATH=/usr/include/gdal
 
 WORKDIR /app
 
-# Install python package and dependencies
+# Copy package metadata and source before installing
 COPY pyproject.toml .
+COPY src/ ./src/
+
+# Install python package and dependencies
 RUN pip install --no-cache-dir .
 
-# Copy source code and assets
-COPY src/ ./src/
+# Copy remaining assets
 COPY scripts/ ./scripts/
 COPY data/ ./data/
 
