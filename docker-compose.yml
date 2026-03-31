@@ -3,7 +3,7 @@ services:
     build: .
     volumes:
       - ./outputs:/app/outputs
-      - ./config:/app/config
+      - ./data:/app/data
     environment:
       - PYTHONUNBUFFERED=1
-    command: ["--mode", "full"]
+    command: ["validate-dataset"]

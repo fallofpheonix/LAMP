@@ -8,11 +8,11 @@ from lamp.services.ml_diagnostics_service import run_diagnostics
 
 def run(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run ML diagnostics for Task 1 path prior features")
-    parser.add_argument("--dem", default="task1-path-tracing/Task_1/DEM_Subset-Original.tif")
-    parser.add_argument("--sar", default="task1-path-tracing/Task_1/SAR-MS.tif")
-    parser.add_argument("--paths", default="task1-path-tracing/known_paths_train.shp")
-    parser.add_argument("--eval-paths", default="task1-path-tracing/known_paths_eval.shp")
-    parser.add_argument("--out-dir", default="outputs/diagnostics")
+    parser.add_argument("--dem", default="data/task1/DEM_Subset-Original.tif")
+    parser.add_argument("--sar", default="data/task1/SAR-MS.tif")
+    parser.add_argument("--paths", required=True)
+    parser.add_argument("--eval-paths", required=True)
+    parser.add_argument("--out-dir", default="outputs/path_tracing/diagnostics")
     args = parser.parse_args(argv)
 
     run_diagnostics(

@@ -1,8 +1,8 @@
 from pathlib import Path
 import unittest
 
-from core.models import RasterValidation, VectorValidation
-from services.dataset_validation_service import find_crs_mismatches, render_dataset_markdown
+from lamp.core.models import RasterValidation, VectorValidation
+from lamp.services.dataset_validation_service import find_crs_mismatches, render_dataset_markdown
 
 
 class TestDatasetValidationService(unittest.TestCase):

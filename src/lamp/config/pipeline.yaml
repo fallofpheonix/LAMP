@@ -1,10 +1,10 @@
 dataset:
-  dem_path: "task1-path-tracing/Task_1/DEM_Subset-Original.tif"
-  sar_path: "task1-path-tracing/Task_1/SAR-MS.tif"
-  marks_path: "task1-path-tracing/Task_1/Marks_Brief1.shp"
-  buildings_path: "task1-path-tracing/Task_1/BuildingFootprints.shp"
-  known_paths_train: "task1-path-tracing/known_paths_train.shp"
-  known_paths_eval: "task1-path-tracing/known_paths_eval.shp"
+  dem_path: "data/task1/DEM_Subset-Original.tif"
+  sar_path: "data/task1/SAR-MS.tif"
+  marks_path: "data/task1/Marks_Brief1.shp"
+  buildings_path: "data/task1/BuildingFootprints.shp"
+  known_paths_train: "data/task1/known_paths_train.shp"
+  known_paths_eval: "data/task1/known_paths_eval.shp"
 
 ml_training:
   rf_estimators: 100
@@ -17,13 +17,17 @@ simulation:
   samples_per_pair: 128
   top_k_paths: 12
   noise_temperature: 0.08
-  cost_weights:
-    slope: 0.55
-    roughness: 0.30
-    surface: 0.10
-    path_prior: 0.05
+  cost_w_slope: 0.55
+  cost_w_roughness: 0.30
+  cost_w_surface: 0.10
+  cost_w_path_prior: 0.05
+  cost_w_visibility: 0.0
+  calibrate_weights: false
+  compare_visibility_coupling: false
 
 viewshed:
+  visibility_raster: "outputs/viewshed_probability.tif"
+  visibility_source: "deterministic"
   observer_height_m: 2.0
   target_height_m: 0.0
   max_distance_m: 2000.0

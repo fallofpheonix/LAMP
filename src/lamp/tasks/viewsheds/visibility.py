@@ -146,38 +146,3 @@ def compute_multi_observer_visibility(
         # Restore previous global surface (or clear it) to avoid retaining
         # a reference to a potentially large array after this function returns.
         _GLOBAL_SURFACE = prev_surface
-    _GLOBAL_SURFACE = surface
-
-    if n_workers <= 1:
-        results = [_compute_one_observer(a) for a in task_args]
-    else:
-        results = [None] * len(task_args)  # type: ignore[list-item]
-        with ProcessPoolExecutor(
-            max_workers=n_workers,
-            initializer=_init_worker,
-            initargs=(surface,),
-        ) as executor:
-            future_to_idx = {
-                executor.submit(_compute_one_observer, a): i
-                for i, a in enumerate(task_args)
-            }
-            for fut in as_completed(future_to_idx):
-                idx = future_to_idx[fut]
-                results[idx] = fut.result()
-
-    per_observer = []
-    arrays = []
-    for obs, stats, arr in results:
-        per_observer.append({"observer": obs, "stats": stats, "viewshed": arr})
-        arrays.append(arr.astype(np.float32))
-
-    stack = np.stack(arrays, axis=0)
-    prob = np.mean(stack, axis=0).astype(np.float32)
-    any_visible = (np.max(stack, axis=0) > 0).astype(np.uint8)
-
-    return {
-        "per_observer": per_observer,
-        "viewshed_probability": prob,
-        "viewshed_any": any_visible,
-    }
-

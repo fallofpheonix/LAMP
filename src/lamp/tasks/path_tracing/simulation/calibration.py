@@ -15,7 +15,7 @@ from lamp.tasks.path_tracing.simulation.probabilistic_paths import PathRecord, s
 
 @dataclass
 class CalibrationResult:
-    weights: tuple[float, float, float, float]
+    weights: tuple[float, float, float, float, float]
     topk_recall: float
     iou: float
     precision: float
@@ -83,27 +83,44 @@ def evaluate_topk_metrics(
     }
 
 
-def default_weight_grid(base_weights: tuple[float, float, float, float]) -> list[tuple[float, float, float, float]]:
-    ws, wr, wt, wp = base_weights
-    grid = {
-        (ws, wr, wt, wp),
-        (ws + 0.1, wr - 0.05, wt - 0.03, wp - 0.02),
-        (ws - 0.1, wr + 0.05, wt + 0.03, wp + 0.02),
-        (ws + 0.05, wr + 0.05, wt - 0.05, wp - 0.05),
-        (ws - 0.05, wr - 0.05, wt + 0.05, wp + 0.05),
-        (0.60, 0.20, 0.10, 0.10),
-        (0.50, 0.20, 0.20, 0.10),
-        (0.45, 0.25, 0.15, 0.15),
-        (0.55, 0.15, 0.15, 0.15),
-    }
+def _normalize_weights(
+    weights: tuple[float, float, float, float] | tuple[float, float, float, float, float]
+) -> tuple[float, float, float, float, float]:
+    arr = np.asarray(weights, dtype=np.float32)
+    if arr.shape == (4,):
+        arr = np.concatenate([arr, np.array([0.0], dtype=np.float32)])
+    if arr.shape != (5,):
+        raise ValueError("weights must be a 4- or 5-tuple")
+    arr = np.clip(arr, 0.0, None)
+    if float(arr.sum()) <= 0.0:
+        raise ValueError("weights must have positive sum")
+    arr /= float(arr.sum())
+    return tuple(float(v) for v in arr)
 
-    out = []
-    for g in grid:
-        arr = np.asarray(g, dtype=np.float32)
-        arr = np.clip(arr, 0.01, None)
-        arr /= float(arr.sum())
-        out.append((float(arr[0]), float(arr[1]), float(arr[2]), float(arr[3])))
-    return out
+
+def default_weight_grid(
+    base_weights: tuple[float, float, float, float] | tuple[float, float, float, float, float],
+    *,
+    enable_visibility_search: bool,
+) -> list[tuple[float, float, float, float, float]]:
+    base = _normalize_weights(base_weights)
+    if not enable_visibility_search:
+        return [base]
+
+    core = np.asarray(base[:4], dtype=np.float32)
+    core_sum = float(core.sum())
+    if core_sum <= 0.0:
+        core = np.asarray([0.55, 0.30, 0.10, 0.05], dtype=np.float32)
+        core_sum = float(core.sum())
+
+    candidates: dict[tuple[float, float, float, float, float], None] = {}
+    coarse_values = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, round(base[4], 2)}
+    for visibility_weight in sorted(coarse_values):
+        visibility_weight = float(np.clip(visibility_weight, 0.0, 0.95))
+        scaled_core = core / core_sum * (1.0 - visibility_weight)
+        candidate = tuple(float(v) for v in scaled_core) + (visibility_weight,)
+        candidates[_normalize_weights(candidate)] = None
+    return list(candidates.keys())
 
 
 def calibrate_weights(
@@ -111,6 +128,7 @@ def calibrate_weights(
     roughness: np.ndarray,
     surface_penalty: np.ndarray,
     path_prior: np.ndarray,
+    visibility_probability: np.ndarray | None,
     obstacle_mask: np.ndarray,
     terminals: list[tuple[int, int]],
     known_path_mask: np.ndarray,
@@ -118,8 +136,8 @@ def calibrate_weights(
     top_k: int,
     rng_seed: int,
     temperature: float,
-    weight_candidates: list[tuple[float, float, float, float]],
-) -> tuple[tuple[float, float, float, float], list[CalibrationResult]]:
+    weight_candidates: list[tuple[float, float, float, float, float]],
+) -> tuple[tuple[float, float, float, float, float], list[CalibrationResult]]:
     all_pairs = list(combinations(range(len(terminals)), 2))
     if not all_pairs:
         raise RuntimeError("Need at least one terminal pair for calibration")
@@ -129,7 +147,15 @@ def calibrate_weights(
     best_score = -1.0
 
     for w_idx, weights in enumerate(weight_candidates):
-        cost = compute_cost_surface(slope_norm, roughness, surface_penalty, path_prior, obstacle_mask, weights=weights)
+        cost = compute_cost_surface(
+            slope_norm,
+            roughness,
+            surface_penalty,
+            path_prior,
+            visibility_probability=visibility_probability,
+            obstacle_mask=obstacle_mask,
+            weights=weights,
+        )
 
         all_records: list[tuple[int, int, PathRecord]] = []
         for p_idx, (src_idx, dst_idx) in enumerate(all_pairs):
@@ -153,6 +179,55 @@ def calibrate_weights(
         if score > best_score:
             best_score = score
             best_w = weights
+
+    # Optional local refinement around the strongest visibility weight.
+    best_visibility_weight = best_w[4]
+    if visibility_probability is not None and best_visibility_weight > 0.0:
+        local_candidates: list[tuple[float, float, float, float, float]] = []
+        core = np.asarray(best_w[:4], dtype=np.float32)
+        core_sum = float(core.sum()) or 1.0
+        for visibility_weight in (best_visibility_weight - 0.05, best_visibility_weight + 0.05):
+            if not (0.0 <= visibility_weight <= 0.95):
+                continue
+            scaled_core = core / core_sum * (1.0 - visibility_weight)
+            candidate = _normalize_weights(tuple(float(v) for v in scaled_core) + (float(visibility_weight),))
+            if candidate in weight_candidates or candidate in local_candidates:
+                continue
+            local_candidates.append(candidate)
+
+        for local_idx, weights in enumerate(local_candidates, start=len(weight_candidates)):
+            cost = compute_cost_surface(
+                slope_norm,
+                roughness,
+                surface_penalty,
+                path_prior,
+                visibility_probability=visibility_probability,
+                obstacle_mask=obstacle_mask,
+                weights=weights,
+            )
+
+            all_records: list[tuple[int, int, PathRecord]] = []
+            for p_idx, (src_idx, dst_idx) in enumerate(all_pairs):
+                recs, _, _ = sample_probabilistic_paths(
+                    base_cost=cost,
+                    start=terminals[src_idx],
+                    goal=terminals[dst_idx],
+                    samples=samples_per_pair,
+                    temperature=temperature,
+                    top_k=top_k,
+                    seed=rng_seed + 1000 * local_idx + p_idx,
+                )
+                for rec in recs:
+                    all_records.append((src_idx, dst_idx, rec))
+
+            pred_mask = _records_topk_mask(all_records, cost.shape, top_k=top_k)
+            recall, iou, precision, f1 = _metrics(pred_mask, known_path_mask)
+            results.append(CalibrationResult(weights=weights, topk_recall=recall, iou=iou, precision=precision, f1=f1))
+
+            score = 0.65 * iou + 0.35 * recall
+            if score > best_score:
+                best_score = score
+                best_w = weights
 
     results.sort(key=lambda r: (r.iou, r.topk_recall), reverse=True)
     return best_w, results

@@ -3,13 +3,20 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import geopandas as gpd
+import matplotlib.pyplot as plt
+import numpy as np
+from rasterio.features import rasterize
+from scipy import ndimage
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import auc, precision_recall_curve
+
+from lamp.core.io import read_raster
+from lamp.tasks.path_tracing.preprocessing.dem_processing import compute_slope_norm
+from lamp.tasks.path_tracing.preprocessing.terrain_features import compute_roughness, robust_normalize
+
 
 def build_features(dem, sar, transform):
-    import numpy as np
-    from preprocessing.dem_processing import compute_slope_norm
-    from preprocessing.terrain_features import compute_roughness, robust_normalize
-    from scipy import ndimage
-
     slope = compute_slope_norm(dem, transform)
     roughness = compute_roughness(dem)
     sar_normalized = robust_normalize(sar)
@@ -37,7 +44,6 @@ def build_features(dem, sar, transform):
 
 
 def align_band_to_reference(src_path: Path, ref_transform, ref_crs, ref_shape):
-    import numpy as np
     import rasterio
     from rasterio.warp import Resampling, reproject
 
@@ -65,21 +71,6 @@ def run_diagnostics(
     eval_paths_path: Path,
     out_dir: Path,
 ) -> None:
-    import sys
-
-    import geopandas as gpd
-    import matplotlib.pyplot as plt
-    import numpy as np
-    from rasterio.features import rasterize
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.metrics import auc, precision_recall_curve
-
-    root = Path(__file__).resolve().parents[1]
-    sys.path.insert(0, str(root / "shared_utils/src"))
-    sys.path.insert(0, str(root / "task1-path-tracing/src"))
-
-    from lamp_core.io import read_raster
-
     out_dir.mkdir(parents=True, exist_ok=True)
 
     dem_band = read_raster(str(dem_path))

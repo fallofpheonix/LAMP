@@ -1,21 +1,30 @@
 .DS_Store
 .venv/
 .python_env/
+.venv-doc/
 __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
 .env
+
+# Project Artifacts
 outputs/
 outputs_production/
-task1-path-tracing/outputs_final_audit/
-task1-path-tracing/outputs_production/
-Task_1/
-path_prior_prob.tif
+output/
+tmp/
+
+# GIS Temporary Files
 *.gpkg
 *.dbf
 *.shp
 *.shx
 *.prj
 *.cpg
+!data/**/*.gpkg
+!data/**/*.dbf
+!data/**/*.shp
+!data/**/*.shx
+!data/**/*.prj
+!data/**/*.cpg

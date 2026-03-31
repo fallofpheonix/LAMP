@@ -13,11 +13,11 @@ from lamp.services.dataset_validation_service import (
 
 def run(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Validate dataset integrity for LAMP assets")
-    parser.add_argument("--dem", default="task1-path-tracing/Task_1/DEM_Subset-Original.tif")
-    parser.add_argument("--sar", default="task1-path-tracing/Task_1/SAR-MS.tif")
-    parser.add_argument("--marks", default="task1-path-tracing/Task_1/Marks_Brief1.shp")
-    parser.add_argument("--buildings", default="task1-path-tracing/Task_1/BuildingFootprints.shp")
-    parser.add_argument("--out-report", default="DATASET_INTEGRITY_REPORT.md")
+    parser.add_argument("--dem", default="data/task1/DEM_Subset-Original.tif")
+    parser.add_argument("--sar", default="data/task1/SAR-MS.tif")
+    parser.add_argument("--marks", default="data/task1/Marks_Brief1.shp")
+    parser.add_argument("--buildings", default="data/task1/BuildingFootprints.shp")
+    parser.add_argument("--out-report", default="outputs/dataset_integrity_latest.md")
     args = parser.parse_args(argv)
 
     rasters = [validate_raster_layer(Path(args.dem)), validate_raster_layer(Path(args.sar))]
