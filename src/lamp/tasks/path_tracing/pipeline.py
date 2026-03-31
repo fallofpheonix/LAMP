@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import warnings
 from dataclasses import dataclass, replace
 from itertools import combinations
 from pathlib import Path
@@ -40,6 +41,7 @@ from lamp.tasks.path_tracing.simulation.cost_surface import compute_cost_surface
 from lamp.tasks.path_tracing.simulation.probabilistic_paths import sample_probabilistic_paths
 from lamp.tasks.path_tracing.vision.learned_prior import load_learned_path_prior
 from lamp.tasks.path_tracing.vision.path_segmentation import detect_visible_path_prior
+from lamp.services.dataset_validation_service import validate_raster_layer, validate_vector_layer
 
 
 def align_band_to_reference(src_path: Path, ref_profile: dict) -> np.ndarray:
@@ -181,6 +183,28 @@ def load_visibility_probability(src_path: Path | None, ref_profile: dict) -> tup
     return dst, alignment
 
 
+def preflight_check(config: PipelineConfig) -> None:
+    """Validate existence and format of required Task 1 inputs."""
+    required_rasters = [config.dem_path, config.sar_path]
+    required_vectors = [config.marks_path, config.buildings_path]
+
+    for r in required_rasters:
+        if not r.exists():
+            raise FileNotFoundError(f"Missing required raster: {r}")
+        validate_raster_layer(r)
+
+    for v in required_vectors:
+        if not v.exists():
+            raise FileNotFoundError(f"Missing required vector: {v}")
+        validate_vector_layer(v)
+
+    if config.known_paths_path and config.known_paths_path.exists():
+        validate_vector_layer(config.known_paths_path)
+
+    if config.visibility_raster and config.visibility_raster.exists():
+        validate_raster_layer(config.visibility_raster)
+
+
 def write_comparison_figure(
     path: Path,
     baseline_density: np.ndarray,
@@ -223,6 +247,11 @@ def _load_path_prior(
 
     prior_path = config.path_prior_raster
     if prior_path is None or not prior_path.exists():
+        if config.path_prior_mode == "learned":
+            warnings.warn(
+                f"Learned prior raster missing at {prior_path}. Falling back to deterministic path prior.",
+                RuntimeWarning,
+            )
         return detect_visible_path_prior(sar, slope_norm), "deterministic-fallback"
 
     return (
@@ -244,6 +273,7 @@ def _run_single(
     visibility_probability: np.ndarray | None = None,
     visibility_alignment: dict | None = None,
 ) -> ScenarioArtifacts:
+    preflight_check(config)
     output_dir = scenario_out_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
