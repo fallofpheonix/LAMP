@@ -30,37 +30,54 @@ The coupling contract is raster-based: Task 2 produces `viewshed_probability.tif
 └── tests/            Unit and integration tests
 ```
 
-## Installation
+### Task 2 native dependencies (GDAL)
 
-Requirements:
+Task 2 (Viewsheds) requires **GDAL/OGR** system libraries.
 
-- Python 3.10+
-- GDAL/OGR runtime for Task 2 and GDAL-backed utilities
+- **Ubuntu/Debian**: `sudo apt-get install gdal-bin libgdal-dev`
+- **macOS (Homebrew)**: `brew install gdal`
+- **Windows**: Use OSGeo4W or the [Conda](https://anaconda.org/conda-forge/gdal) environment.
 
-Recommended local install:
+After installing the system library, install the Python bindings if they were not picked up:
 
 ```bash
-python -m pip install -e ".[dev]"
+python -m pip install "gdal==$(gdal-config --version)"
 ```
 
-On Linux, install GDAL system packages before Python dependencies. The GitHub Actions workflow shows the expected Ubuntu setup.
+Alternatively, use the provided `Dockerfile` which includes a complete GDAL-ready environment.
+
+## Quick Start
+
+Run the canonical path-tracing pipeline on the sample dataset:
+
+```bash
+# Task 1: Path tracing (Deterministic fallback)
+lamp path-tracing --max-pairs 1 --samples 8
+
+# Task 2: 2.5D Viewshed (Requires GDAL)
+lamp viewsheds-2d
+```
 
 ## CLI
 
-The package CLI is the primary interface:
+The `lamp` package CLI is the primary entry point:
 
 ```bash
-lamp path-tracing --max-pairs 1 --samples 8
-lamp viewsheds-2d
-lamp viewsheds-3d
-lamp validate-dataset
-lamp security-audit
-lamp benchmark-raycast
+# Core Simulation
+lamp path-tracing      # Task 1: Probabilistic path tracing
+lamp viewsheds-2d      # Task 2: 2.5D deterministic viewshed
+lamp viewsheds-3d      # Task 2: 3D voxel viewshed + volume
+
+# Services & Validation
+lamp validate-dataset  # Preflight check for Task 1/2 inputs
+lamp ml-diagnostics    # Evaluation for learned path priors
+lamp security-audit    # Static environment security check
+lamp benchmark-raycast # Performance profiling for Task 2 kernels
 ```
 
 Notes:
 
-- Task 1 defaults to a deterministic path prior so a clean clone does not require an untracked `path_prior_prob.tif`.
+- **Missing learned priors**: Task 1 defaults to a deterministic prior with a `RuntimeWarning` if the requested learned prior is missing.
 - Task 2 defaults to the shipped `data/task2/` dataset layout.
 - `lamp ml-diagnostics` requires explicit training and evaluation path labels because those labels are not shipped in this repository.
 
