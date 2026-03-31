@@ -29,6 +29,9 @@ def write_raster(path: Path | str, array: np.ndarray, profile: dict) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     out_profile = profile.copy()
     out_profile.update(dtype="float32", count=1, compress="lzw", nodata=np.nan)
+    if not out_profile.get("tiled", False):
+        out_profile.pop("blockxsize", None)
+        out_profile.pop("blockysize", None)
     with rasterio.open(destination, "w", **out_profile) as dst:
         dst.write(array.astype(np.float32), 1)
 

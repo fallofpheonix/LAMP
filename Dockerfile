@@ -13,17 +13,15 @@ ENV C_INCLUDE_PATH=/usr/include/gdal
 
 WORKDIR /app
 
-# Install python packages
-COPY requirements.minimal.txt .
-RUN pip install --no-cache-dir -r requirements.minimal.txt
+# Install python package and dependencies
+COPY pyproject.toml .
+RUN pip install --no-cache-dir .
 
-# Copy source code
-COPY shared_utils ./shared_utils
-COPY task1-path-tracing ./task1-path-tracing
-COPY task2-viewsheds ./task2-viewsheds
-COPY config ./config
-COPY main.py .
+# Copy source code and assets
+COPY src/ ./src/
+COPY scripts/ ./scripts/
+COPY data/ ./data/
 
-ENV PYTHONPATH=/app/shared_utils/src:/app/task1-path-tracing/src:/app/task2-viewsheds/src
+ENV PYTHONPATH=/app/src
 
-ENTRYPOINT ["python3", "main.py"]
+ENTRYPOINT ["python3", "-m", "lamp.api.cli"]

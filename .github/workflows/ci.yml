@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: ["main", "copilot/**"]
+    branches: ["main", "clean-structure"]
   pull_request:
     branches: ["main"]
 
@@ -10,12 +10,9 @@ permissions:
   contents: read
 
 jobs:
-  test-task1:
-    name: Task 1 – Path Tracing
+  test:
+    name: Test Suite
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: submission/source/task1-path-tracing
 
     steps:
       - uses: actions/checkout@v4
@@ -25,7 +22,7 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
-          cache-dependency-path: submission/source/task1-path-tracing/requirements.txt
+          cache-dependency-path: pyproject.toml
 
       - name: Add ubuntugis PPA
         run: |
@@ -45,59 +42,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Verify GDAL version
-        run: |
-          gdalinfo --version
-
-      - name: Run unit tests
-        env:
-          PYTHONPATH: src
-        run: python -m pytest tests/ -v --tb=short
-
-      - name: Run integration test (synthetic dataset)
-        env:
-          PYTHONPATH: src
-        run: |
-          python tests/integration/test_task1_synthetic.py
-
-  test-task2:
-    name: Task 2 – Viewsheds
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: submission/source/task2-viewsheds
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: "pip"
-          cache-dependency-path: submission/source/task2-viewsheds/requirements.txt
-
-      - name: Add ubuntugis PPA
-        run: |
-          sudo add-apt-repository ppa:ubuntugis/ubuntugis-unstable -y
-          sudo apt-get update
-
-      - name: Install system GDAL
-        run: |
-          sudo apt-get install -y gdal-bin libgdal-dev
-
-      - name: Export GDAL environment
-        run: |
-          echo "GDAL_VERSION=$(gdal-config --version)"
-          echo "GDAL_CONFIG=$(which gdal-config)" >> $GITHUB_ENV
-          echo "GDAL_DATA=$(gdal-config --datadir)" >> $GITHUB_ENV
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install .
           pip install "GDAL==$(gdal-config --version)"
 
       - name: Verify GDAL version
@@ -105,5 +50,7 @@ jobs:
           gdalinfo --version
           python -c "import osgeo.gdal as gdal; print(gdal.VersionInfo())"
 
-      - name: Run unit tests
+      - name: Run tests
+        env:
+          PYTHONPATH: src
         run: python -m pytest tests/ -v --tb=short

@@ -20,10 +20,10 @@ class PipelineConfig:
     sim = _raw.get("simulation", {})
     viewshed = _raw.get("viewshed", {})
     
-    dem_path: Path = Path(dataset.get("dem_path", "data-briefs/task1/DEM_Subset-Original.tif"))
-    sar_path: Path = Path(dataset.get("sar_path", "data-briefs/task1/SAR-MS.tif"))
-    marks_path: Path = Path(dataset.get("marks_path", "data-briefs/task1/Marks_Brief1.shp"))
-    buildings_path: Path = Path(dataset.get("buildings_path", "data-briefs/task1/BuildingFootprints.shp"))
+    dem_path: Path = Path(dataset.get("dem_path", "data/task1/DEM_Subset-Original.tif"))
+    sar_path: Path = Path(dataset.get("sar_path", "data/task1/SAR-MS.tif"))
+    marks_path: Path = Path(dataset.get("marks_path", "data/task1/Marks_Brief1.shp"))
+    buildings_path: Path = Path(dataset.get("buildings_path", "data/task1/BuildingFootprints.shp"))
     known_paths_path: Path | None = _optional_path(dataset.get("known_paths_train"))
     path_prior_raster: Path | None = Path("path_prior_prob.tif")
     path_prior_mode: Literal["learned", "deterministic"] = "learned"
