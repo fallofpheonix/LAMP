@@ -58,7 +58,7 @@ COMMANDS = {
 
 
 def main(argv: list[str] | None = None) -> int:
-    argv = list(argv or [])
+    argv = list(sys.argv[1:] if argv is None else argv)
     if argv and argv[0] in COMMANDS:
         try:
             return COMMANDS[argv[0]](argv[1:])
