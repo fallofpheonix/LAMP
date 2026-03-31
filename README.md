@@ -1,133 +1,100 @@
 # LAMP: Late Antiquity Modeling Project
 
-[![CI](https://github.com/fallofpheonix/LAMP/actions/workflows/ci.yml/badge.badge.svg)](https://github.com/fallofpheonix/LAMP/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/fallofpheonix/LAMP/actions/workflows/ci.yml/badge.svg)](https://github.com/fallofpheonix/LAMP/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**Deterministic geospatial pipelines for archaeological path tracing, 3D viewshed analysis, and visibility-coupled movement inference.**
+Deterministic geospatial pipelines for archaeological path tracing, 3D viewshed analysis, and visibility-coupled movement inference.
 
----
+## Overview
 
-## 1. Project Overview
+LAMP models movement and visibility in the El Bagawat necropolis using two explicit task surfaces:
 
-The **Late Antiquity Modeling Project (LAMP)** is an interdisciplinary research initiative applying computational methods to reconstruct spatial experiences in ancient landscapes. 
+- Task 1: probabilistic path tracing over slope, roughness, surface penalty, path priors, and optional visibility coupling
+- Task 2: 2D and voxel-3D viewshed generation over terrain and building geometry
 
-The project focuses on the **El Bagawat necropolis** in Egypt's Kharga Oasis. By integrating 3D visibility analysis with probabilistic path tracing, LAMP provides a rigorous framework for validating archaeological hypotheses against spatially grounded evidence.
+The coupling contract is raster-based: Task 2 produces `viewshed_probability.tif`, and Task 1 can consume that aligned raster as an additional movement-cost term.
 
-### Core Capabilities
-*   **Probabilistic Path Tracing:** Inferred movement pathways between ancient structures using multi-factor cost surfaces.
-*   **3D Viewshed Analysis:** High-fidelity visibility computation considering terrain and building geometry.
-*   **Visibility-Coupled Inference:** Integration of visibility as a measurable constraint in movement modeling.
-*   **Operational Diagnostics:** Built-in tools for dataset validation, security auditing, and performance benchmarking.
-
----
-
-## 2. Repository Structure
-
-The repository is organized into a modular, production-ready layout:
+## Repository Layout
 
 ```text
-/
-├── assets/             # Visualization samples for documentation
-├── data/               # GIS sample datasets (DEMs, Shapefiles, Orthoimagery)
-├── docs/               # Research documentation and GSoC proposals
-├── scripts/            # Pipeline execution and analysis scripts
-├── src/lamp/           # Core implementation modules
-│   ├── api/            # CLI and service orchestration
-│   ├── core/           # Mathematical models and IO logic
-│   ├── services/       # Domain services (validation, diagnostics)
-│   ├── tasks/          # Task-specific pipeline logic (Path Tracing, Viewsheds)
-│   └── utils/          # Filesystem and utility helpers
-├── tests/              # Unit and integration test suite
-├── Dockerfile          # Containerized execution environment
-└── pyproject.toml      # Project metadata and dependencies
+.
+├── assets/           Curated figures used in the README
+├── data/             Shipped sample GIS inputs for Task 1 and Task 2
+├── docs/research/    Research and proposal material kept for project context
+├── scripts/          Compatibility wrappers and research utilities
+├── src/lamp/         Package source
+│   ├── api/          Unified CLI entry points
+│   ├── core/         Shared config, IO, terrain, and exception utilities
+│   ├── services/     Validation, diagnostics, benchmark, and audit services
+│   └── tasks/        Task 1 and Task 2 implementations
+└── tests/            Unit and integration tests
 ```
 
----
+## Installation
 
-## 3. Getting Started
+Requirements:
 
-### Prerequisites
-*   Python 3.10+
-*   GDAL/OGR system dependencies (for GIS operations)
+- Python 3.10+
+- GDAL/OGR runtime for Task 2 and GDAL-backed utilities
 
-### Installation
-
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/fallofpheonix/LAMP.git
-    cd LAMP
-    ```
-
-2.  **Install dependencies:**
-    ```bash
-    pip install .
-    ```
-
-3.  **Environment Setup:**
-    Copy the example environment file and adjust paths if necessary:
-    ```bash
-    cp .env.example .env
-    ```
-
----
-
-## 4. Usage
-
-The primary interface is the unified `lamp` CLI.
-
-### Core Operations
-*   **Validate Dataset:**
-    ```bash
-    lamp validate-dataset
-    ```
-*   **Security Audit:**
-    ```bash
-    lamp security-audit
-    ```
-*   **Performance Benchmark:**
-    ```bash
-    lamp benchmark-raycast
-    ```
-
-### Running the Pipeline
-Execute individual task scripts for path tracing or viewshed analysis:
+Recommended local install:
 
 ```bash
-# Path Tracing
+python -m pip install -e ".[dev]"
+```
+
+On Linux, install GDAL system packages before Python dependencies. The GitHub Actions workflow shows the expected Ubuntu setup.
+
+## CLI
+
+The package CLI is the primary interface:
+
+```bash
+lamp path-tracing --max-pairs 1 --samples 8
+lamp viewsheds-2d
+lamp viewsheds-3d
+lamp validate-dataset
+lamp security-audit
+lamp benchmark-raycast
+```
+
+Notes:
+
+- Task 1 defaults to a deterministic path prior so a clean clone does not require an untracked `path_prior_prob.tif`.
+- Task 2 defaults to the shipped `data/task2/` dataset layout.
+- `lamp ml-diagnostics` requires explicit training and evaluation path labels because those labels are not shipped in this repository.
+
+The legacy script entry points remain available as wrappers:
+
+```bash
 python scripts/run_path_tracing.py
-
-# Viewshed Computation
 python scripts/run_viewsheds.py
+python scripts/run_viewsheds_3d.py
 ```
 
----
+## Data
 
-## 5. Visualizations
+Shipped datasets live under:
 
-### 3D Visibility Scene
-![3D Visibility](/assets/3D_visibility_scene.png)
-*Reconstruction of visibility volumes in the El Bagawat necropolis.*
+- `data/task1/` for path-tracing inputs
+- `data/task2/` for viewshed inputs
 
-### Path Density Comparison
-![Path Comparison](/assets/2D_viewshed_overlay.png)
-*Comparison of movement patterns with and without visibility coupling.*
+The repository intentionally does not ship all derived labels and trained artifacts. Commands that require those artifacts accept them explicitly as arguments.
 
----
+## Testing
 
-## 6. Testing
-
-Run the full test suite using `pytest`:
+Run the test suite from the repository root:
 
 ```bash
-pytest tests/ -v
+python -m pytest -q
 ```
 
----
+## Research Context
 
-## 7. License
+Research and proposal material is preserved under `docs/research/` to document project intent, evaluation framing, and coupling rationale without mixing it into the runtime package surface.
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## Visualizations
 
-## 8. Acknowledgments
+![3D Visibility](assets/3D_visibility_scene.png)
 
-LAMP is a collaborative effort involving archaeologists, historians, and computer scientists dedicated to digital heritage and spatial modeling.
+![Path Comparison](assets/2D_viewshed_overlay.png)

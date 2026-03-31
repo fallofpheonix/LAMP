@@ -1,7 +1,13 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "lamp"
 version = "0.1.0"
 description = "Locating and Mapping Positions (LAMP) Geospatial Pipelines"
+readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.10"
 dependencies = [
     "numpy>=1.24",
@@ -16,12 +22,21 @@ dependencies = [
     "pyyaml>=6.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.8",
+]
+
 [project.scripts]
 lamp = "lamp.api.cli:main"
 lamp-validate = "lamp.api.dataset_validation_cli:main"
 lamp-diagnostics = "lamp.api.ml_diagnostics_cli:main"
 lamp-security = "lamp.api.security_audit_cli:main"
 lamp-benchmark = "lamp.api.raycast_benchmark_cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

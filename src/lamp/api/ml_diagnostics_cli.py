@@ -10,9 +10,9 @@ def run(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run ML diagnostics for Task 1 path prior features")
     parser.add_argument("--dem", default="data/task1/DEM_Subset-Original.tif")
     parser.add_argument("--sar", default="data/task1/SAR-MS.tif")
-    parser.add_argument("--paths", default="data/task1/known_paths_train.shp")
-    parser.add_argument("--eval-paths", default="data/task1/known_paths_eval.shp")
-    parser.add_argument("--out-dir", default="outputs/diagnostics")
+    parser.add_argument("--paths", required=True)
+    parser.add_argument("--eval-paths", required=True)
+    parser.add_argument("--out-dir", default="outputs/path_tracing/diagnostics")
     args = parser.parse_args(argv)
 
     run_diagnostics(
