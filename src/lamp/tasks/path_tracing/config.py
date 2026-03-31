@@ -1,3 +1,10 @@
+"""Pipeline configuration dataclass for Task 1 path tracing.
+
+All defaults are loaded from ``config/pipeline.yaml``; each field
+can be overridden at runtime by passing command-line arguments to
+the :func:`lamp.tasks.path_tracing.pipeline.main` entry point.
+"""
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -13,6 +20,12 @@ def _optional_path(value: str | None) -> Path | None:
 
 @dataclass(frozen=True)
 class PipelineConfig:
+    """Centralised configuration for the Task 1 path-tracing pipeline.
+
+    All path and numeric parameters are read from ``config/pipeline.yaml``
+    with sensible hard-coded defaults so that a clean clone works without
+    any additional setup.
+    """
     # Defaults taken from centralized config
     _raw = load_config()
     dataset = _raw.get("dataset", {})

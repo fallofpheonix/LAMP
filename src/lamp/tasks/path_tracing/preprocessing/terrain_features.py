@@ -1,3 +1,10 @@
+"""Terrain feature extraction for the Task 1 preprocessing stage.
+
+Derives normalised roughness and surface-penalty rasters from a DEM
+and co-registered SAR image.  All outputs are ``float32`` arrays in
+the [0, 1] range with ``nan`` where the source DEM has nodata.
+"""
+
 from __future__ import annotations
 
 import numpy as np
@@ -5,6 +12,7 @@ from scipy import ndimage
 
 
 def robust_normalize(arr: np.ndarray, low_q: float = 2.0, high_q: float = 98.0) -> np.ndarray:
+    """Clip *arr* to the [*low_q*, *high_q*] percentile range and scale to [0, 1]."""
     out = arr.astype(np.float32).copy()
     finite = np.isfinite(out)
     if not finite.any():
@@ -20,6 +28,7 @@ def robust_normalize(arr: np.ndarray, low_q: float = 2.0, high_q: float = 98.0) 
 
 
 def compute_roughness(dem: np.ndarray, sigma: float = 1.0) -> np.ndarray:
+    """Return normalised surface roughness as the Gaussian-residual magnitude."""
     filled = np.nan_to_num(dem, nan=np.nanmedian(dem))
     smooth = ndimage.gaussian_filter(filled, sigma=sigma)
     rough = np.abs(filled - smooth)
@@ -28,6 +37,11 @@ def compute_roughness(dem: np.ndarray, sigma: float = 1.0) -> np.ndarray:
 
 
 def derive_surface_penalty(sar: np.ndarray, slope_norm: np.ndarray) -> np.ndarray:
+    """Derive a movement-difficulty surface penalty from *sar* and *slope_norm*.
+
+    Combines the SAR gradient magnitude (70 %) with the slope term (30 %)
+    to produce a [0, 1] penalty raster where higher values deter movement.
+    """
     sar_n = robust_normalize(sar)
     gy, gx = np.gradient(np.nan_to_num(sar_n, nan=np.nanmedian(sar_n)))
     grad = np.sqrt(gx * gx + gy * gy)

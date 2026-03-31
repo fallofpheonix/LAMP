@@ -1,3 +1,10 @@
+"""Repository-level configuration loader with PyYAML and fallback support.
+
+Attempts to load ``config/pipeline.yaml`` using PyYAML.  When PyYAML is
+not available the module falls back to the hand-written minimal parser in
+:mod:`lamp.core.shared_config`.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path

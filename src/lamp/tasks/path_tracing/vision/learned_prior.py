@@ -1,3 +1,10 @@
+"""Learned path-prior loader for the Task 1 vision module.
+
+Loads a pre-trained path probability raster and reprojects it onto the
+DEM grid using bilinear resampling.  Logit-scale outputs are converted
+to probabilities via the sigmoid function.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path

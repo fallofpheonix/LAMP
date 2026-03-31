@@ -1,3 +1,9 @@
+"""Shared terrain utilities re-exported for backward compatibility.
+
+Thin wrappers around :mod:`lamp.core.terrain` that accept GDAL-style
+geotransform tuples instead of rasterio :class:`~rasterio.Affine` objects.
+"""
+
 from __future__ import annotations
 
 import rasterio

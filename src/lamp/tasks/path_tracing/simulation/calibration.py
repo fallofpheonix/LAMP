@@ -1,3 +1,11 @@
+"""Weight calibration for the Task 1 cost-surface parameters.
+
+Evaluates candidate weight combinations against known path masks and
+returns the combination that maximises a composite IoU + recall score.
+A local refinement step around the best visibility weight is applied
+when visibility coupling is enabled.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -15,6 +23,8 @@ from lamp.tasks.path_tracing.simulation.probabilistic_paths import PathRecord, s
 
 @dataclass
 class CalibrationResult:
+    """Metrics for a single weight combination evaluated during calibration."""
+
     weights: tuple[float, float, float, float, float]
     topk_recall: float
     iou: float
@@ -28,6 +38,7 @@ def rasterize_known_paths(
     transform: rasterio.Affine,
     crs: object,
 ) -> np.ndarray:
+    """Rasterise known-path geometries from *known_paths_path* into a binary mask."""
     gdf = gpd.read_file(known_paths_path)
     if gdf.crs != crs:
         gdf = gdf.to_crs(crs)
@@ -73,6 +84,7 @@ def evaluate_topk_metrics(
     gt_mask: np.ndarray,
     top_k: int,
 ) -> tuple[np.ndarray, dict]:
+    """Evaluate top-*k* path recall, IoU, precision and F1 against *gt_mask*."""
     pred_mask = _records_topk_mask(records, shape, top_k=top_k)
     recall, iou, precision, f1 = _metrics(pred_mask, gt_mask)
     return pred_mask, {
@@ -103,6 +115,12 @@ def default_weight_grid(
     *,
     enable_visibility_search: bool,
 ) -> list[tuple[float, float, float, float, float]]:
+    """Return a list of normalised weight candidates for grid-search calibration.
+
+    When *enable_visibility_search* is ``False`` only *base_weights* (as a
+    5-tuple) is returned.  Otherwise a coarse grid of visibility weights is
+    generated with the remaining four weights scaled to sum to 1.
+    """
     base = _normalize_weights(base_weights)
     if not enable_visibility_search:
         return [base]
@@ -138,6 +156,15 @@ def calibrate_weights(
     temperature: float,
     weight_candidates: list[tuple[float, float, float, float, float]],
 ) -> tuple[tuple[float, float, float, float, float], list[CalibrationResult]]:
+    """Grid-search weight calibration over *weight_candidates*.
+
+    Runs probabilistic path sampling for every weight combination and
+    selects the one that maximises ``0.65 * IoU + 0.35 * recall``.  An
+    optional local refinement step fine-tunes the visibility weight.
+
+    Returns the best weight 5-tuple and all :class:`CalibrationResult`
+    records sorted by (IoU, recall) descending.
+    """
     all_pairs = list(combinations(range(len(terminals)), 2))
     if not all_pairs:
         raise RuntimeError("Need at least one terminal pair for calibration")

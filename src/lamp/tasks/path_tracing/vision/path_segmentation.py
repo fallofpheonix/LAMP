@@ -1,3 +1,9 @@
+"""Deterministic path-prior estimation from SAR and terrain features.
+
+Generates a [0, 1] probability map of visible path locations using
+texture, gradient, and slope-based heuristics – no model weights needed.
+"""
+
 from __future__ import annotations
 
 import numpy as np

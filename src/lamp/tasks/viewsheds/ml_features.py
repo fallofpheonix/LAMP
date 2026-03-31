@@ -1,3 +1,9 @@
+"""Per-pixel feature engineering for the Task 2 ML viewshed model.
+
+Constructs the feature matrix ``X`` fed to :class:`~lamp.tasks.viewsheds.ml_model.LogisticVisibilityModel`
+from geometric distance and elevation attributes relative to each observer.
+"""
+
 from __future__ import annotations
 
 from typing import Optional, Tuple

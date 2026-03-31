@@ -1,3 +1,10 @@
+"""Raster-to-vector conversion utilities for Task 1 path outputs.
+
+Converts probabilistic path rasters and skeleton masks into
+:class:`~geopandas.GeoDataFrame` objects suitable for export as
+shapefiles or GeoPackage layers.
+"""
+
 from __future__ import annotations
 
 from typing import Iterable
@@ -13,11 +20,13 @@ from lamp.tasks.path_tracing.simulation.probabilistic_paths import PathRecord
 
 
 def pixel_center_xy(transform: rasterio.Affine, r: int, c: int) -> tuple[float, float]:
+    """Return world (x, y) coordinates of the centre of pixel (r, c)."""
     x, y = rasterio.transform.xy(transform, r, c, offset="center")
     return float(x), float(y)
 
 
 def path_to_linestring(path: Iterable[tuple[int, int]], transform: rasterio.Affine) -> LineString:
+    """Convert a sequence of (row, col) pixels to a :class:`~shapely.geometry.LineString`."""
     coords = [pixel_center_xy(transform, r, c) for r, c in path]
     if len(coords) < 2:
         coords = coords * 2
@@ -29,6 +38,7 @@ def path_records_to_gdf(
     transform: rasterio.Affine,
     crs: object,
 ) -> gpd.GeoDataFrame:
+    """Convert a list of (src_idx, dst_idx, PathRecord) tuples to a GeoDataFrame."""
     rows = []
     geoms = []
     for src_idx, dst_idx, rec in records:
@@ -47,6 +57,7 @@ def path_records_to_gdf(
 
 
 def mask_to_polygon_gdf(mask: np.ndarray, transform: rasterio.Affine, crs: object, min_area: float = 0.0) -> gpd.GeoDataFrame:
+    """Polygonise a binary *mask* raster into a GeoDataFrame of polygon geometries."""
     geoms = []
     for geom, value in features.shapes(mask.astype(np.uint8), transform=transform):
         if int(value) != 1:

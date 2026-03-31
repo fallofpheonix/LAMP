@@ -1,3 +1,11 @@
+"""Logistic-regression visibility model for Task 2 viewshed prediction.
+
+Provides a lightweight, dependency-free logistic classifier trained
+from per-pixel terrain and distance features.  Includes helpers for
+binary classification metrics, optimal threshold selection, and
+mini-batch gradient-descent training with class-imbalance weighting.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,6 +16,8 @@ import numpy as np
 
 @dataclass
 class LogisticVisibilityModel:
+    """Serialisable logistic regression model for per-pixel visibility prediction."""
+
     weights: np.ndarray
     bias: float
     mean: np.ndarray
@@ -43,6 +53,7 @@ class LogisticVisibilityModel:
 
 
 def binary_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]:
+    """Compute accuracy, precision, recall, F1, and IoU for binary predictions."""
     y_true = y_true.astype(np.uint8)
     y_pred = y_pred.astype(np.uint8)
 
@@ -75,6 +86,7 @@ def best_threshold(
     y_prob: np.ndarray,
     n_steps: int = 81,
 ) -> Tuple[float, Dict[str, float]]:
+    """Find the probability threshold that maximises F1 over *n_steps* candidates."""
     best_t = 0.5
     best_m = {"f1": -1.0}
 
@@ -96,6 +108,11 @@ def train_logistic_model(
     epochs: int = 300,
     l2: float = 1e-4,
 ) -> Tuple[LogisticVisibilityModel, Dict[str, float], Dict[str, float]]:
+    """Train a logistic visibility model with class-imbalance weighting.
+
+    Uses batch gradient descent with L2 regularisation.  Returns the
+    trained model together with train and validation metric dicts.
+    """
     mean = X_train.mean(axis=0)
     std = X_train.std(axis=0)
     std = np.where(std < 1e-8, 1.0, std)

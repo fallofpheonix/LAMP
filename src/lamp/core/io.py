@@ -1,3 +1,11 @@
+"""GIS raster and vector I/O primitives built on rasterio and geopandas.
+
+Provides a lightweight ``RasterBundle`` container together with
+``read_raster``, ``write_raster``, and ``write_vector`` helpers that
+are used throughout the LAMP pipeline to load and persist geospatial
+data with consistent nodata handling and compression settings.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -10,6 +18,8 @@ import rasterio
 
 @dataclass
 class RasterBundle:
+    """Container for a raster band together with its spatial metadata."""
+
     data: np.ndarray
     transform: rasterio.Affine
     crs: object
@@ -17,6 +27,11 @@ class RasterBundle:
 
 
 def read_raster(path: Path | str, band: int = 1) -> RasterBundle:
+    """Read a single band from a raster file and return a :class:`RasterBundle`.
+
+    Nodata pixels are replaced with ``np.nan``.  The returned array is
+    always ``float32``.
+    """
     with rasterio.open(path) as src:
         array = src.read(band).astype(np.float32)
         if src.nodata is not None:
@@ -25,6 +40,11 @@ def read_raster(path: Path | str, band: int = 1) -> RasterBundle:
 
 
 def write_raster(path: Path | str, array: np.ndarray, profile: dict) -> None:
+    """Write *array* to a GeoTIFF at *path* using LZW compression.
+
+    Parent directories are created automatically.  The output dtype is
+    always ``float32`` and nodata is set to ``np.nan``.
+    """
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     out_profile = profile.copy()
@@ -37,6 +57,11 @@ def write_raster(path: Path | str, array: np.ndarray, profile: dict) -> None:
 
 
 def write_vector(gdf: gpd.GeoDataFrame, path: Path | str) -> None:
+    """Write *gdf* to a vector file, selecting the driver from the file extension.
+
+    Supported extensions: ``.geojson`` / ``.json``, ``.gpkg``, ``.shp``.
+    Parent directories are created automatically.
+    """
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     suffix = destination.suffix.lower()

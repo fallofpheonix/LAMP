@@ -1,3 +1,10 @@
+"""Patch dataset utilities for training path-prior segmentation models.
+
+Provides :class:`PatchDataset` and :func:`extract_patches` for slicing
+image/mask pairs into fixed-size training patches with configurable
+stride.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -7,11 +14,18 @@ import numpy as np
 
 @dataclass
 class PatchDataset:
+    """Stacked image patches (``x``) and corresponding mask patches (``y``)."""
+
     x: np.ndarray
     y: np.ndarray
 
 
 def extract_patches(image: np.ndarray, mask: np.ndarray, patch: int = 128, stride: int = 64) -> PatchDataset:
+    """Extract fixed-size patches from *image* and *mask* with the given *stride*.
+
+    Patches that do not fit exactly (border remainder) are skipped.  Returns an
+    empty :class:`PatchDataset` when no complete patches can be extracted.
+    """
     rows, cols = image.shape[-2], image.shape[-1]
     x_list = []
     y_list = []

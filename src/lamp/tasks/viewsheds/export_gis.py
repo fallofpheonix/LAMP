@@ -1,3 +1,9 @@
+"""GIS I/O for Task 2 viewshed outputs using GDAL/OGR.
+
+Provides GDAL-backed ``write_raster`` and ``polygonize_raster``
+functions plus a legacy VTK ASCII writer for 3-D visibility volumes.
+"""
+
 from __future__ import annotations
 
 import os
@@ -24,6 +30,7 @@ def write_raster(
     gdal_dtype: int,
     nodata: Optional[float] = None,
 ) -> None:
+    """Write *array* to a LZW-compressed GeoTIFF using GDAL."""
     h, w = array.shape
     drv = gdal.GetDriverByName("GTiff")
     ds = drv.Create(path, w, h, 1, gdal_dtype, options=["COMPRESS=LZW"])
@@ -47,6 +54,7 @@ def polygonize_raster(
     layer_name: str = "viewshed",
     field_name: str = "value",
 ) -> None:
+    """Polygonise a binary viewshed raster to a shapefile or GeoPackage."""
     rds = gdal.Open(raster_path, gdal.GA_ReadOnly)
     if rds is None:
         raise FileNotFoundError(f"Cannot open raster: {raster_path}")

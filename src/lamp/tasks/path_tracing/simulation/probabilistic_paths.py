@@ -1,3 +1,11 @@
+"""Monte Carlo probabilistic path sampling for Task 1.
+
+Adds Gumbel-distributed noise to the base cost surface and runs A*
+multiple times to produce an ensemble of candidate paths.  Each path
+is recorded with its empirical probability, count, and total base cost.
+Multi-process execution is used when ``n_workers > 1``.
+"""
+
 from __future__ import annotations
 
 import os
@@ -12,6 +20,8 @@ from lamp.tasks.path_tracing.simulation.path_finder import astar_path
 
 @dataclass
 class PathRecord:
+    """A single sampled path together with its statistics."""
+
     path: list[tuple[int, int]]
     probability: float
     count: int

@@ -1,8 +1,20 @@
+"""Minimal YAML parser used as a fallback when PyYAML is unavailable.
+
+Handles the flat key-value and single-level section structure of
+``config/pipeline.yaml`` without any external dependencies.
+"""
+
 import json
 from pathlib import Path
 from dataclasses import dataclass, field
 
 def load_config(path: str = "config/pipeline.yaml"):
+    """Load a simple YAML config file without requiring the PyYAML package.
+
+    Supports flat key-value pairs and one level of section nesting.
+    Values are coerced to ``bool``, ``int``, ``float``, or ``str`` where
+    possible.  Returns an empty dict if the file does not exist.
+    """
     # Since PyYAML is not available, we will use a simple parser or just convert it to JSON manually for now.
     # Actually, I'll see if I can use a simple JSON config or implement a basic YAML-like parser.
     # Given the environment constraints, I'll provide a JSON version too or just use a custom parser.

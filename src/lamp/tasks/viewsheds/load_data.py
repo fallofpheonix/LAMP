@@ -1,3 +1,9 @@
+"""DEM and observer data loading utilities for Task 2 viewsheds.
+
+Provides GDAL-backed loaders for DEM rasters and OGR-backed loaders
+for observer-point shapefiles, including automatic CRS reprojection.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -9,6 +15,8 @@ from osgeo import gdal, ogr, osr
 
 @dataclass
 class DemData:
+    """DEM raster data together with its spatial reference metadata."""
+
     path: str
     array: np.ndarray
     geotransform: tuple
@@ -17,6 +25,7 @@ class DemData:
 
 
 def load_dem(path: str) -> DemData:
+    """Open a DEM raster with GDAL and return a :class:`DemData` bundle."""
     ds = gdal.Open(path, gdal.GA_ReadOnly)
     if ds is None:
         raise FileNotFoundError(f"Cannot open DEM: {path}")
@@ -47,6 +56,11 @@ def _make_transformer(src_wkt: str, dst_wkt: str) -> osr.CoordinateTransformatio
 
 
 def load_observers(points_path: str, target_projection_wkt: str, id_field: str = "id") -> List[dict]:
+    """Load point features from *points_path* and reproject to *target_projection_wkt*.
+
+    Returns a list of ``{"id": int, "x": float, "y": float}`` dicts.
+    Raises :exc:`RuntimeError` if no valid observer points are found.
+    """
     ds = ogr.Open(points_path)
     if ds is None:
         raise FileNotFoundError(f"Cannot open points file: {points_path}")

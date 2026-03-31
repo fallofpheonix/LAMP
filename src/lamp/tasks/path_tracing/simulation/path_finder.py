@@ -1,3 +1,10 @@
+"""A* shortest-path finder operating on a 2-D cost surface.
+
+The implementation uses a binary heap priority queue and supports
+both 4-connected and 8-connected (diagonal) grids.  Cells with
+``np.inf`` cost are treated as impassable obstacles.
+"""
+
 from __future__ import annotations
 
 import heapq
@@ -33,6 +40,22 @@ def _heuristic(a: tuple[int, int], b: tuple[int, int], min_cost: float) -> float
 
 
 def astar_path(cost: np.ndarray, start: tuple[int, int], goal: tuple[int, int], max_expansions: int = 1_000_000) -> list[tuple[int, int]]:
+    """Find the lowest-cost path from *start* to *goal* on *cost*.
+
+    Uses an admissible Euclidean heuristic scaled by the minimum finite
+    cost value.  Returns an empty list when no path exists or when either
+    terminal lies on an obstacle (``np.inf``) cell.
+
+    Parameters
+    ----------
+    cost:
+        2-D float32 array where higher values mean harder traversal and
+        ``np.inf`` marks impassable cells.
+    start, goal:
+        ``(row, col)`` index tuples.
+    max_expansions:
+        Safety limit to prevent unbounded search on large grids.
+    """
     rows, cols = cost.shape
     sr, sc = start
     gr, gc = goal

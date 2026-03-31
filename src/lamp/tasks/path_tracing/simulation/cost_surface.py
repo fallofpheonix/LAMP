@@ -1,3 +1,10 @@
+"""Weighted cost-surface construction for Task 1 path tracing.
+
+Combines normalised slope, roughness, surface-penalty, path-prior,
+and optional visibility-probability rasters into a single ``float32``
+cost grid consumed by the A* path finder.
+"""
+
 from __future__ import annotations
 
 import numpy as np
